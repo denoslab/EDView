@@ -51,18 +51,21 @@ const FLOOR_Y = 0;
  * (`Texture_Atlas_Colors_2.png`) loaded once and applied to every
  * model's materials.
  */
+/** Resolve a path relative to Vite's configured `base` URL. */
+const base = import.meta.env.BASE_URL;
+
 const MODEL_URLS: Record<string, string> = {
-  bed: '/models/hospital/bed.fbx',
-  chair: '/models/hospital/chair.fbx',
-  waiting_room_chair: '/models/hospital/waiting_chair.fbx',
-  computer: '/models/hospital/computer.fbx',
-  diagnostic_table: '/models/hospital/diagnostic_table.fbx',
-  medical_equipment: '/models/hospital/medical_equipment.fbx',
-  wheelchair: '/models/hospital/wheelchair.fbx'
+  bed: `${base}models/hospital/bed.fbx`,
+  chair: `${base}models/hospital/chair.fbx`,
+  waiting_room_chair: `${base}models/hospital/waiting_chair.fbx`,
+  computer: `${base}models/hospital/computer.fbx`,
+  diagnostic_table: `${base}models/hospital/diagnostic_table.fbx`,
+  medical_equipment: `${base}models/hospital/medical_equipment.fbx`,
+  wheelchair: `${base}models/hospital/wheelchair.fbx`
 };
 
 /** Path to the shared texture atlas used by all hospital FBX models. */
-const TEXTURE_ATLAS_URL = '/models/hospital/Texture_Atlas_Colors_2.png';
+const TEXTURE_ATLAS_URL = `${base}models/hospital/Texture_Atlas_Colors_2.png`;
 
 /**
  * Scale factors per equipment type, calculated from measured FBX
@@ -120,12 +123,12 @@ const FBX_SCALE = 0.001;
 function floorModelForZone(zoneId: string): string {
   switch (zoneId) {
     case 'waiting_room':
-      return '/models/hospital/floor_reception.fbx';
+      return `${base}models/hospital/floor_reception.fbx`;
     case 'hallway':
     case 'exit':
-      return '/models/hospital/floor_office.fbx';
+      return `${base}models/hospital/floor_office.fbx`;
     default:
-      return '/models/hospital/floor_ward.fbx';
+      return `${base}models/hospital/floor_ward.fbx`;
   }
 }
 
@@ -188,7 +191,7 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
  * Vertical walls get a 90-degree Y rotation.
  */
 function Walls({ layout }: { layout: MapLayout }) {
-  const wallModel = useFBXModel('/models/hospital/wall_small_ward.fbx');
+  const wallModel = useFBXModel(`${base}models/hospital/wall_small_ward.fbx`);
 
   if (!wallModel) return null;
 
@@ -302,7 +305,7 @@ function useFBXModel(modelUrl: string): THREE.Group | null {
     // Set the resource path so the FBXLoader can find the shared
     // texture atlas files (Texture_Atlas_Colors_2.png, etc.)
     // that the FBX materials reference.
-    loader.setResourcePath('/models/hospital/');
+    loader.setResourcePath(`${base}models/hospital/`);
 
     let cancelled = false;
     loadAtlas().then((atlas) => {
@@ -462,22 +465,22 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
     <>
       {/* === DESK AREA (z 8-9) === */}
       <Decoration
-        url="/models/hospital/reception_desk.fbx"
+        url={`${base}models/hospital/reception_desk.fbx`}
         position={[cx, FLOOR_Y, minY + 2]}
         scale={s * 0.7}
       />
       <Decoration
-        url="/models/hospital/chair_reception.fbx"
+        url={`${base}models/hospital/chair_reception.fbx`}
         position={[cx, FLOOR_Y, minY + 1.2]}
         scale={s}
       />
       <Decoration
-        url="/models/hospital/pc_monitor.fbx"
+        url={`${base}models/hospital/pc_monitor.fbx`}
         position={[cx - 0.8, FLOOR_Y + 0.4, minY + 2]}
         scale={s}
       />
       <Decoration
-        url="/models/hospital/phone.fbx"
+        url={`${base}models/hospital/phone.fbx`}
         position={[cx + 0.8, FLOOR_Y + 0.4, minY + 2]}
         scale={s}
       />
@@ -485,50 +488,50 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
       {/* === SEATING AREA (z 10-16) === */}
       {/* 1 bench on the left, facing right */}
       <Decoration
-        url="/models/hospital/waiting_chair.fbx"
+        url={`${base}models/hospital/waiting_chair.fbx`}
         position={[cx - 1.5, FLOOR_Y, cz + 1]}
         rotation={[-Math.PI / 2, 0, Math.PI / 2]}
         scale={s}
       />
       {/* 1 bench on the right, facing left */}
       <Decoration
-        url="/models/hospital/waiting_chair.fbx"
+        url={`${base}models/hospital/waiting_chair.fbx`}
         position={[cx + 1.5, FLOOR_Y, cz + 1]}
         rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
         scale={s}
       />
       {/* Magazine table in the aisle */}
       <Decoration
-        url="/models/hospital/table_magazines.fbx"
+        url={`${base}models/hospital/table_magazines.fbx`}
         position={[cx, FLOOR_Y, cz + 1]}
         scale={s}
       />
 
       {/* === PERIPHERY === */}
       <Decoration
-        url="/models/hospital/tv.fbx"
+        url={`${base}models/hospital/tv.fbx`}
         position={[maxX - 2, FLOOR_Y + 1.0, cz + 1]}
         rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
         scale={s}
       />
       <Decoration
-        url="/models/hospital/bookshelf.fbx"
+        url={`${base}models/hospital/bookshelf.fbx`}
         position={[minX + 2, FLOOR_Y, cz]}
         rotation={[-Math.PI / 2, 0, Math.PI / 2]}
         scale={s}
       />
       <Decoration
-        url="/models/hospital/plant.fbx"
+        url={`${base}models/hospital/plant.fbx`}
         position={[minX + 2, FLOOR_Y, maxY - 2]}
         scale={s}
       />
       <Decoration
-        url="/models/hospital/garbage.fbx"
+        url={`${base}models/hospital/garbage.fbx`}
         position={[maxX - 2, FLOOR_Y, maxY - 2]}
         scale={s}
       />
       <Decoration
-        url="/models/hospital/exit_sign.fbx"
+        url={`${base}models/hospital/exit_sign.fbx`}
         position={[cx, FLOOR_Y + 1.5, maxY - 1.5]}
         scale={s}
       />
