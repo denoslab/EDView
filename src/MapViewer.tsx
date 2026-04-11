@@ -34,6 +34,10 @@ export function MapViewer() {
   const [state, setState] = useState<LoadingState>({ kind: 'idle' });
   const [showZoneLabels, setShowZoneLabels] = useState(true);
   const [showSpawnOverlay, setShowSpawnOverlay] = useState(false);
+  // On narrow viewports the sidebar is hidden by default and toggled
+  // open via a hamburger button in the header. On wide viewports the
+  // sidebar is always visible and this flag is a no-op.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Load the selected map.
   useEffect(() => {
@@ -63,9 +67,26 @@ export function MapViewer() {
     window.history.replaceState(null, '', url.toString());
   }, [selected]);
 
+  const closeSidebarOnMobile = () => setIsSidebarOpen(false);
+
   return (
-    <div className="map-viewer-root" data-testid="map-viewer">
+    <div
+      className={`map-viewer-root${isSidebarOpen ? ' sidebar-open' : ''}`}
+      data-testid="map-viewer"
+    >
       <header className="map-viewer-header">
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-label={isSidebarOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isSidebarOpen}
+          onClick={() => setIsSidebarOpen((open) => !open)}
+          data-testid="sidebar-toggle"
+        >
+          <span className="sidebar-toggle-bar" />
+          <span className="sidebar-toggle-bar" />
+          <span className="sidebar-toggle-bar" />
+        </button>
         <div>
           <h1>EDSim Floor Plan Viewer</h1>
           <p className="subtitle">
@@ -74,6 +95,14 @@ export function MapViewer() {
         </div>
       </header>
       <div className="map-viewer-body">
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close menu"
+          tabIndex={isSidebarOpen ? 0 : -1}
+          onClick={closeSidebarOnMobile}
+          data-testid="sidebar-backdrop"
+        />
         <aside className="map-viewer-sidebar" data-testid="map-sidebar">
           <h2>Maps</h2>
           <ul className="map-list">
@@ -84,7 +113,10 @@ export function MapViewer() {
                   <button
                     type="button"
                     className={`map-list-item${isActive ? ' active' : ''}`}
-                    onClick={() => setSelected(entry)}
+                    onClick={() => {
+                      setSelected(entry);
+                      closeSidebarOnMobile();
+                    }}
                     data-testid={`map-button-${entry.id}`}
                   >
                     <span className="map-name">{entry.displayName}</span>
