@@ -8,7 +8,38 @@
       name="description"
       content="Bird's-eye floor plan renderer for the EDSim emergency department simulator."
     />
+
+    <!-- Favicon + iOS home-screen icon. Apple link previews fall back to
+         apple-touch-icon when no og:image is declared, so we point both
+         at the same SVG so iMessage shows the app icon instead of the
+         GitHub org avatar. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Open Graph / Twitter card metadata for link previews. URLs must
+         be absolute, so the deployed GitHub Pages origin is hard-coded. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EDSim Floor Plan Viewer" />
+    <meta property="og:title" content="EDSim — Floor Plan Viewer" />
+    <meta
+      property="og:description"
+      content="Bird's-eye floor plan renderer for the EDSim emergency department simulator."
+    />
+    <meta property="og:url" content="https://denoslab.github.io/EDView/" />
+    <meta
+      property="og:image"
+      content="https://denoslab.github.io/EDView/favicon.svg"
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="EDSim — Floor Plan Viewer" />
+    <meta
+      name="twitter:description"
+      content="Bird's-eye floor plan renderer for the EDSim emergency department simulator."
+    />
+    <meta
+      name="twitter:image"
+      content="https://denoslab.github.io/EDView/favicon.svg"
+    />
   </head>
   <body>
     <div id="root"></div>

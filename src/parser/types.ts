@@ -48,7 +48,10 @@ export type EquipmentType =
   | 'medical_equipment'
   | 'computer'
   | 'waiting_room_chair'
-  | 'diagnostic_table';
+  | 'diagnostic_table'
+  | 'triage_bed'
+  | 'receptionist_chair'
+  | 'receptionist_desk';
 
 /**
  * A 2D point in tile coordinates.
@@ -129,6 +132,8 @@ export interface EquipmentPlacement {
   tileX: number;
   /** Tile row. */
   tileY: number;
+  /** Object Rotation */
+  rotation: number;
   /** Raw Tiled GID this placement was decoded from. */
   rawTileId: number;
 }
@@ -171,6 +176,7 @@ export interface WallSegment {
   /** End point in tile-edge coordinates. */
   x2: number;
   y2: number;
+  type: 'wall' | 'doorway';
 }
 
 /**

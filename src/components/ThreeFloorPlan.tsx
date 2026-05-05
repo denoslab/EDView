@@ -21,14 +21,20 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, extend, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { Text } from 'troika-three-text';
 import type { MapLayout, EquipmentPlacement, ZoneRegion } from '@/parser/types';
+import type { PersonaState } from '@/replay/usePersonaPositions';
+import { AgentLayer } from './AgentLayer';
 import { CANVAS_BACKGROUND_COLOR } from '@/theme/colors';
+
+// Extend react-three-fiber with the Text component
+extend({ Text });
 
 /** Props for {@link ThreeFloorPlan}. */
 export interface ThreeFloorPlanProps {
@@ -36,8 +42,10 @@ export interface ThreeFloorPlanProps {
   layout: MapLayout;
   /** Show zone labels. */
   showZoneLabels?: boolean;
-  /** Show spawning overlay. */
+  /** Show spawning-location overlay. (Reserved; not yet rendered.) */
   showSpawnOverlay?: boolean;
+  /** Optional persona positions (world units) keyed by persona id */
+  personas?: Record<string, PersonaState>;
 }
 
 /** Scale: 1 tile = 1 Three.js unit. */
@@ -57,11 +65,14 @@ const base = import.meta.env.BASE_URL;
 const MODEL_URLS: Record<string, string> = {
   bed: `${base}models/hospital/bed.fbx`,
   chair: `${base}models/hospital/chair.fbx`,
-  waiting_room_chair: `${base}models/hospital/waiting_chair.fbx`,
-  computer: `${base}models/hospital/computer.fbx`,
+  waiting_room_chair: `${base}models/hospital/waiting_room_chair.fbx`,
+  computer: `${base}models/hospital/h_table.fbx`,
   diagnostic_table: `${base}models/hospital/diagnostic_table.fbx`,
   medical_equipment: `${base}models/hospital/medical_equipment.fbx`,
-  wheelchair: `${base}models/hospital/wheelchair.fbx`
+  wheelchair: `${base}models/hospital/wheelchair.fbx`,
+  receptionist_chair:`${base}models/hospital/chair_reception.fbx`,
+  receptionist_desk:`${base}models/hospital/reception_desk.fbx`,
+  triage_bed:`${base}models/hospital/diagnostic_table.fbx`
 };
 
 /** Path to the shared texture atlas used by all hospital FBX models. */
@@ -83,13 +94,16 @@ const TEXTURE_ATLAS_URL = `${base}models/hospital/Texture_Atlas_Colors_2.png`;
  *   diagnostic_table: 456.1 × 1244.8 × 653.8  → target 1.0 tiles
  */
 const MODEL_SCALE: Record<string, number> = {
-  bed: 0.00227,
-  chair: 0.0036,
-  waiting_room_chair: 0.00117,
-  computer: 0.00325,
-  diagnostic_table: 0.00213,
-  medical_equipment: 0.00325,
-  wheelchair: 0.00248
+  default: 0.001,
+  bed: 0.0015,
+  chair: 0.0015,
+  waiting_room_chair: 0.0009,
+  computer: 0.0015,
+  diagnostic_table: 0.0015,
+  medical_equipment: 0.0015,
+  wheelchair: 0.0015,
+  receptionist_desk: 0.001,
+  triage_bed: 0.0015
 };
 
 /**
@@ -100,7 +114,7 @@ const MODEL_SCALE: Record<string, number> = {
  * furniture. These types are skipped in Furniture and placed
  * manually with correct count and positioning.
  */
-const DECORATION_HANDLED_TYPES = new Set(['waiting_room_chair']);
+const DECORATION_HANDLED_TYPES = new Set();
 
 /* ZONE_COLORS and CANVAS_BACKGROUND_COLOR imported from @/theme/colors */
 
@@ -142,6 +156,7 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
   const floorUrl = floorModelForZone(zone.zoneId);
   const floorModel = useFBXModel(floorUrl);
 
+  console.log(`Rendering floor for zone ${zone.zoneId} (${zone.zoneName}) with model ${floorUrl}`);
   const tileSetLookup = useMemo(() => {
     const s = new Set<string>();
     for (const t of zone.tilePositions) s.add(`${t.x},${t.y}`);
@@ -155,24 +170,29 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
   const maxX = zone.bounds.maxX + 1;
   const maxZ = zone.bounds.maxY + 1;
 
-  const tiles: Array<{ x: number; z: number; key: string }> = [];
+  const tiles: Array<{ x: number; z: number; key: string; offset: number; model: THREE.Object3D }> = [];
   for (let x = minX; x < maxX; x++) {
     for (let z = minZ; z < maxZ; z++) {
+      let offset = 1;
+      let model = floorModel;
+      if(zone.zoneId === 'waiting_room'){
+          offset = 2; // Slightly raise the floor at the edges of the waiting room to create a subtle border effect
+      }
       if (tileSetLookup.has(`${x},${z}`)) {
-        tiles.push({ x, z, key: `floor-${zone.zoneRegionId}-${x}-${z}` });
+        tiles.push({ x, z, key: `floor-${zone.zoneRegionId}-${x}-${z}`, offset:offset, model: model });
       }
     }
   }
 
   return (
     <>
-      {tiles.map(({ x, z, key }) => (
+      {tiles.map(({ x, z, key, offset,model }) => (
         <primitive
           key={key}
-          object={floorModel.clone(true)}
+          object={model.clone(true)}
           position={[x + 0.5, FLOOR_Y, z + 0.5]}
           rotation={[-Math.PI / 2, 0, 0]}
-          scale={[FBX_SCALE, FBX_SCALE, FBX_SCALE]}
+          scale={[FBX_SCALE/offset, FBX_SCALE/offset, FBX_SCALE]}
         />
       ))}
     </>
@@ -192,14 +212,16 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
  */
 function Walls({ layout }: { layout: MapLayout }) {
   const wallModel = useFBXModel(`${base}models/hospital/wall_small_ward.fbx`);
-
+  const doorModel = useFBXModel(`${base}models/hospital/single_doorway.fbx`);
   if (!wallModel) return null;
+  if (!doorModel) return null;
 
   const wallPlacements: Array<{
     key: string;
     x: number;
     z: number;
     rotY: number;
+    type: THREE.Group;
   }> = [];
 
   layout.walls.forEach((wall, i) => {
@@ -212,7 +234,8 @@ function Walls({ layout }: { layout: MapLayout }) {
           key: `wall-h-${i}-${x}`,
           x: x + 0.5,
           z,
-          rotY: 0
+          rotY: 0,
+          type: wall.type === 'doorway' ? doorModel : wallModel
         });
       }
     } else {
@@ -224,7 +247,8 @@ function Walls({ layout }: { layout: MapLayout }) {
           key: `wall-v-${i}-${z}`,
           x,
           z: z + 0.5,
-          rotY: Math.PI / 2
+          rotY: Math.PI / 2,
+          type: wall.type === 'doorway' ? doorModel : wallModel
         });
       }
     }
@@ -232,10 +256,10 @@ function Walls({ layout }: { layout: MapLayout }) {
 
   return (
     <>
-      {wallPlacements.map(({ key, x, z, rotY }) => (
+      {wallPlacements.map(({ key, x, z, rotY,type }) => (
         <primitive
           key={key}
-          object={wallModel.clone(true)}
+          object={type.clone(true)}
           position={[x, FLOOR_Y, z]}
           rotation={[-Math.PI / 2, 0, rotY]}
           scale={[FBX_SCALE, FBX_SCALE, FBX_SCALE]}
@@ -362,16 +386,16 @@ function FurnitureModel({
   modelUrl: string;
 }) {
   const model = useFBXModel(modelUrl);
-  const scale = MODEL_SCALE[piece.type] ?? 0.012;
+  const scale = MODEL_SCALE[piece.type] ?? MODEL_SCALE.default;
 
   if (!model) return null;
   return (
     <primitive
       object={model}
       position={[piece.tileX + 0.5, FLOOR_Y, piece.tileY + 0.5]}
-      rotation={[-Math.PI / 2, 0, 0]}
+      rotation={[-Math.PI / 2, 0, piece.rotation]}
       scale={[scale, scale, scale]}
-    />
+          />
   );
 }
 
@@ -385,7 +409,9 @@ function Furniture({ layout }: { layout: MapLayout }) {
         // Skip types that are handled by ReceptionDecorations
         if (DECORATION_HANDLED_TYPES.has(piece.type)) return null;
         const modelUrl = MODEL_URLS[piece.type];
+        console.log(`Rendering furniture: type=${piece.type}, modelUrl=${modelUrl}`);
         if (!modelUrl) return null;
+
         return (
           <FurnitureModel
             key={piece.equipmentId}
@@ -464,7 +490,7 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
   return (
     <>
       {/* === DESK AREA (z 8-9) === */}
-      <Decoration
+      {/* <Decoration
         url={`${base}models/hospital/reception_desk.fbx`}
         position={[cx, FLOOR_Y, minY + 2]}
         scale={s * 0.7}
@@ -483,23 +509,24 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
         url={`${base}models/hospital/phone.fbx`}
         position={[cx + 0.8, FLOOR_Y + 0.4, minY + 2]}
         scale={s}
-      />
+      /> */}
 
       {/* === SEATING AREA (z 10-16) === */}
       {/* 1 bench on the left, facing right */}
-      <Decoration
+      {/* <Decoration
         url={`${base}models/hospital/waiting_chair.fbx`}
         position={[cx - 1.5, FLOOR_Y, cz + 1]}
         rotation={[-Math.PI / 2, 0, Math.PI / 2]}
         scale={s}
-      />
+      /> */}
       {/* 1 bench on the right, facing left */}
-      <Decoration
+      {/* <Decoration
         url={`${base}models/hospital/waiting_chair.fbx`}
         position={[cx + 1.5, FLOOR_Y, cz + 1]}
         rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
         scale={s}
-      />
+      /> */}
+      
       {/* Magazine table in the aisle */}
       <Decoration
         url={`${base}models/hospital/table_magazines.fbx`}
@@ -510,13 +537,13 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
       {/* === PERIPHERY === */}
       <Decoration
         url={`${base}models/hospital/tv.fbx`}
-        position={[maxX - 2, FLOOR_Y + 1.0, cz + 1]}
+        position={[maxX + 0.8, FLOOR_Y + 1.0, cz + 1]}
         rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
         scale={s}
       />
       <Decoration
         url={`${base}models/hospital/bookshelf.fbx`}
-        position={[minX + 2, FLOOR_Y, cz]}
+        position={[minX + 0.2, FLOOR_Y, cz]}
         rotation={[-Math.PI / 2, 0, Math.PI / 2]}
         scale={s}
       />
@@ -532,7 +559,7 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
       />
       <Decoration
         url={`${base}models/hospital/exit_sign.fbx`}
-        position={[cx, FLOOR_Y + 1.5, maxY - 1.5]}
+        position={[cx, FLOOR_Y + 1.5, maxY]}
         scale={s}
       />
     </>
@@ -576,15 +603,74 @@ function Lighting({ layout }: { layout: MapLayout }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Zone labels                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Individual zone label that always faces the camera (billboarding).
+ */
+function ZoneLabel({ zone }: { zone: ZoneRegion }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+
+  useFrame(() => {
+    if (groupRef.current) {
+      // Make the group face the camera
+      groupRef.current.lookAt(camera.position);
+    }
+  });
+
+  const cx = (zone.bounds.minX + zone.bounds.maxX + 1) / 2;
+  const cz = (zone.bounds.minY + zone.bounds.maxY + 1) / 2;
+
+  return (
+    <group ref={groupRef} position={[cx, FLOOR_Y + 3, cz]}>
+      <text
+        text={zone.zoneName}
+        fontSize={0.5}
+        color="#FFFFFF"
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={2}
+        overflowWrap="normal"
+        textAlign="center"
+        outlineWidth={0.05}
+        outlineColor="#000000"
+        outlineOpacity={0.8}
+      />
+    </group>
+  );
+}
+
+/**
+ * Renders 3D text labels for each zone at its center point.
+ */
+function ZoneLabels({ layout, showZoneLabels }: { layout: MapLayout; showZoneLabels?: boolean }) {
+  if (!showZoneLabels) return null;
+
+  return (
+    <>
+      {layout.zones.map((zone) => (
+        <ZoneLabel key={`label-${zone.zoneRegionId}`} zone={zone} />
+      ))}
+    </>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Main scene                                                                 */
 /* -------------------------------------------------------------------------- */
 
 function Scene({
   layout,
-  controlsRef
+  controlsRef,
+  showZoneLabels,
+  personas,
 }: {
   layout: MapLayout;
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
+  showZoneLabels?: boolean;
+  personas?: Record<string, PersonaState>;
 }) {
   const cx = layout.widthInTiles / 2;
   const cz = layout.heightInTiles / 2;
@@ -600,6 +686,8 @@ function Scene({
       <Walls layout={layout} />
       <Furniture layout={layout} />
       <ReceptionDecorations layout={layout} />
+      <ZoneLabels layout={layout} showZoneLabels={showZoneLabels} />
+      {personas && <AgentLayer personas={personas} />}
       <OrbitControls
         ref={controlsRef as React.RefObject<OrbitControlsImpl>}
         target={[cx, 0, cz]}
@@ -781,7 +869,7 @@ function NavControls({ controlsRef, cameraRef, layout }: NavControlsProps) {
  * Takes the same `MapLayout` the parser produces and renders a real
  * 3D scene with Google Maps-style navigation controls.
  */
-export function ThreeFloorPlan({ layout }: ThreeFloorPlanProps) {
+export function ThreeFloorPlan({ layout, showZoneLabels, personas }: ThreeFloorPlanProps) {
   const mapDiag = Math.max(layout.widthInTiles, layout.heightInTiles);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
@@ -806,7 +894,7 @@ export function ThreeFloorPlan({ layout }: ThreeFloorPlanProps) {
         gl={{ antialias: true, toneMapping: THREE.NoToneMapping }}
       >
         <Suspense fallback={null}>
-          <Scene layout={layout} controlsRef={controlsRef} />
+          <Scene layout={layout} controlsRef={controlsRef} showZoneLabels={showZoneLabels} personas={personas} />
           <CameraExposer cameraRef={cameraRef} />
         </Suspense>
       </Canvas>

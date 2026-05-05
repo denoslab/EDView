@@ -10,8 +10,15 @@
  * @packageDocumentation
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ThreeFloorPlan } from '@/components/ThreeFloorPlan';
+import { expandFrames } from '@/replay/expandFrames';
+import { loadReplayFromUrl } from '@/replay/loadReplay';
+import { usePersonaPositions } from '@/replay/usePersonaPositions';
+import { usePlayback } from '@/replay/usePlayback';
+import type { ReplayFile } from '@/replay/types';
+import { PlaybackBar } from '@/components/PlaybackBar';
+import { ReplayDropZone } from '@/components/ReplayDropZone';
 import { loadMapLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
@@ -69,7 +76,72 @@ export function MapViewer() {
 
   const closeSidebarOnMobile = () => setIsSidebarOpen(false);
 
+  // ── Replay state ──────────────────────────────────────────────────────────
+  const [replay, setReplay] = useState<ReplayFile | null>(null);
+  const [replayError, setReplayError] = useState<string | null>(null);
+
+  // Auto-load from ?replay=<url> query param on mount.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('replay');
+    if (!url) return;
+    loadReplayFromUrl(url)
+      .then(setReplay)
+      .catch((e) => setReplayError(String(e)));
+  }, []);
+
+  const expanded = useMemo(
+    () => (replay ? expandFrames(replay.frames) : []),
+    [replay],
+  );
+  const playback = usePlayback({
+    totalSteps: replay?.metadata.totalSteps ?? 1,
+    secPerStep: replay?.metadata.secPerStep ?? 30,
+  });
+  const personas = usePersonaPositions({
+    expanded,
+    personas: replay?.personas ?? [],
+    currentStep: playback.currentStep,
+    interpAlpha: playback.interpAlpha,
+  });
+
+  // Warn if the loaded replay targets a different map than the one displayed.
+  const mapMismatch =
+    replay !== null &&
+    state.kind === 'ready' &&
+    state.layout.mapId !== undefined &&
+    state.layout.mapId !== replay.mapId;
+
   return (
+    <>
+    <ReplayDropZone
+      onLoaded={setReplay}
+      onError={(e) => setReplayError(String(e))}
+    />
+    <button
+      data-testid="load-demo-replay"
+      onClick={() =>
+        loadReplayFromUrl("/replays/small_ed_demo.json")
+          .then(setReplay)
+          .catch((e) => setReplayError(String(e)))
+      }
+      style={{
+        position: "fixed",
+        top: 16,
+        right: 16,
+        padding: "8px 12px",
+        background: "rgba(45,108,223,0.85)",
+        color: "white",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontFamily: "monospace",
+        fontSize: 13,
+        zIndex: 20,
+      }}
+    >
+      Load demo replay
+    </button>
     <div
       className={`map-viewer-root${isSidebarOpen ? ' sidebar-open' : ''}`}
       data-testid="map-viewer"
@@ -170,11 +242,61 @@ export function MapViewer() {
               layout={state.layout}
               showZoneLabels={showZoneLabels}
               showSpawnOverlay={showSpawnOverlay}
+              personas={personas}
             />
           ) : null}
         </main>
       </div>
     </div>
+    {replay && (
+      <PlaybackBar
+        ctrl={playback}
+        simTime={expanded[playback.currentStep]?.simTime}
+      />
+    )}
+    {replayError && (
+      <div
+        style={{
+          position: 'fixed',
+          top: 64,
+          right: 16,
+          color: 'salmon',
+          background: 'rgba(0,0,0,0.75)',
+          padding: '8px 12px',
+          borderRadius: 4,
+          zIndex: 9999,
+          maxWidth: 320,
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 13,
+        }}
+        data-testid="replay-error-banner"
+      >
+        Replay error: {replayError}
+      </div>
+    )}
+    {mapMismatch && (
+      <div
+        style={{
+          position: 'fixed',
+          top: replayError ? 112 : 64,
+          right: 16,
+          color: 'orange',
+          background: 'rgba(0,0,0,0.75)',
+          padding: '8px 12px',
+          borderRadius: 4,
+          zIndex: 9999,
+          maxWidth: 320,
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 13,
+        }}
+        data-testid="replay-mismatch-banner"
+      >
+        Replay was built for {replay!.mapId}; current map is{' '}
+        {state.kind === 'ready' ? state.layout.mapId : 'unknown'}. Switch maps
+        to view it.
+      </div>
+    )}
+    </>
   );
 }
 
