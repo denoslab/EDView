@@ -161,9 +161,6 @@ export function MapViewer() {
         </button>
         <div>
           <h1>EDSim Floor Plan Viewer</h1>
-          <p className="subtitle">
-            Phase 1 — Tiled JSON parser + Three.js 3D renderer
-          </p>
         </div>
       </header>
       <div className="map-viewer-body">
