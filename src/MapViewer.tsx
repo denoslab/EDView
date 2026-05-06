@@ -40,7 +40,6 @@ export function MapViewer() {
   });
   const [state, setState] = useState<LoadingState>({ kind: 'idle' });
   const [showZoneLabels, setShowZoneLabels] = useState(true);
-  const [showSpawnOverlay, setShowSpawnOverlay] = useState(false);
   // On narrow viewports the sidebar is hidden by default and toggled
   // open via a hamburger button in the header. On wide viewports the
   // sidebar is always visible and this flag is a no-op.
@@ -206,15 +205,7 @@ export function MapViewer() {
             />
             Show zone labels
           </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={showSpawnOverlay}
-              onChange={(e) => setShowSpawnOverlay(e.target.checked)}
-              data-testid="toggle-spawn-overlay"
-            />
-            Show spawning slots
-          </label>
+
 
           {state.kind === 'ready' ? (
             <ParserStats layout={state.layout} />
@@ -238,7 +229,6 @@ export function MapViewer() {
               key={state.layout.mapId}
               layout={state.layout}
               showZoneLabels={showZoneLabels}
-              showSpawnOverlay={showSpawnOverlay}
               personas={personas}
             />
           ) : null}
