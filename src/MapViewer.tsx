@@ -130,7 +130,7 @@ export function MapViewer() {
         top: 16,
         right: 16,
         padding: "8px 12px",
-        background: "rgba(45,108,223,0.85)",
+        background: "#2d6cdf",
         color: "white",
         border: "none",
         borderRadius: 6,
@@ -140,7 +140,7 @@ export function MapViewer() {
         zIndex: 20,
       }}
     >
-      Load demo replay
+      Replay
     </button>
     <div
       className={`map-viewer-root${isSidebarOpen ? ' sidebar-open' : ''}`}
