@@ -445,7 +445,6 @@ function simplifyCollinear(polygon: TilePoint[]): TilePoint[] {
 export function extractEquipment(
   layer: TiledLayer,
   equipmentLookup: Map<number, EquipmentType>,
-  walls: TiledLayer,
   graphic: TiledLayer
 ): EquipmentPlacement[] {
   const out: EquipmentPlacement[] = [];
@@ -479,9 +478,6 @@ export function extractEquipment(
         rotation: rotation_offset,
         rawTileId: tileId
       });
-
-
-      
 
     }
   }
@@ -606,14 +602,6 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
       }
 
-      // Top edge (between this tile and the tile above).
-      //if (!isWall(x, y - 1)) addHorizontal(y, x);
-      // Bottom edge (between this tile and the tile below).
-      // if (!isWall(x, y + 1)) addHorizontal(y - 1, x);
-      // // Left edge (between this tile and the tile on the left).
-      // if (!isWall(x - 1, y) && isWall(x, y)) addVertical(x + 1, y);
-      // Right edge (between this tile and the tile on the right).
-      //if (!isWall(x + 1, y)) addVertical(x, y);
     }
   }
 
@@ -631,7 +619,6 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         const half = layer.height / 2;
         if (y < half)          validDecorationRotation = "top_edge";
         else if (y > half) validDecorationRotation = "bottom_edge";
-        console.log(`Checking edge at (${x}, ${y}), validDecorationRotation: ${validDecorationRotation}`);
       }
       if (runStart === null) {
         runStart = x;
@@ -669,12 +656,11 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
     if (runStart !== null) {
       let validDecorationRotation = "interior";
 
-      if (tileAt(arena, runStart, y) === 0) {
+      if (tileAt(arena, runStart, y - 1) === 0 || tileAt(arena, runStart, y + 1) === 0) {
         const half = layer.height / 2;
 
         if (y < half)          validDecorationRotation = "top_edge";
         else if (y > half) validDecorationRotation = "bottom_edge";
-        console.log(`Checking edge at (${runStart}, ${y}), validDecorationRotation: ${validDecorationRotation}`);
       }
       segments.push({
         orientation: 'horizontal',
@@ -702,7 +688,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       if (tileAt(arena, x, y) === 0) {
         const half = layer.width / 2;
 
-        if (x < half)          validDecorationRotation = "left_edge";
+        if (x < half)      validDecorationRotation = "left_edge";
         else if (x > half) validDecorationRotation = "right_edge";
 
       }
@@ -746,8 +732,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
     if (runStart !== null) {
       let validDecorationRotation = "interior";
 
-      if (tileAt(arena, x, runStart) === 0) {
-        console.log(`Checking edge at (${x}, ${runStart})`);
+      if (tileAt(arena, x-1, runStart) === 0 || tileAt(arena, x+1, runStart) === 0) {
         const half = layer.width / 2;
         if (x < half)          validDecorationRotation = "left_edge";
         else if (x > half) validDecorationRotation = "right_edge";
@@ -782,6 +767,7 @@ export function getWallRotation(layer: TiledLayer, x: number, y: number): number
     return 1; // Horizontal wall
   }
 }
+
 /* -------------------------------------------------------------------------- */
 /* Collision mask extraction                                                  */
 /* -------------------------------------------------------------------------- */
@@ -911,7 +897,7 @@ export function parseTiledJSON(
     heightInTiles: tiled.height,
     tileSizePx: tiled.tilewidth,
     zones: extractZoneRegions(arenaLayer, arenaLookup),
-    equipment: extractEquipment(objectLayer, equipmentLookup, collisionsLayer, graphicLayer),
+    equipment: extractEquipment(objectLayer, equipmentLookup, graphicLayer),
     spawningLocations: extractSpawningLocations(spawningLayer, spawningLookup),
     walls: extractWallSegments(wallsLayer, arenaLayer),
     collisionMask: extractCollisionMask(collisionsLayer)

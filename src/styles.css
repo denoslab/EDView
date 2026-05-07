@@ -350,3 +350,17 @@ body,
   margin-left: 5px;
   border-radius: 2px;
 }
+
+button {
+  cursor: pointer;
+  background-color: #2d6cdf;
+  border-radius: 6px;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  z-index: 20;
+  font-family: monospace;
+
+
+}

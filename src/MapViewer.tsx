@@ -22,6 +22,7 @@ import { ReplayDropZone } from '@/components/ReplayDropZone';
 import { loadMapLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
+import { color } from 'three/tsl';
 
 type LoadingState =
   | { kind: 'idle' }
@@ -118,34 +119,12 @@ export function MapViewer() {
       onLoaded={setReplay}
       onError={(e) => setReplayError(String(e))}
     />
-    <button
-      data-testid="load-demo-replay"
-      onClick={() =>
-        loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
-          .then(setReplay)
-          .catch((e) => setReplayError(String(e)))
-      }
-      style={{
-        position: "fixed",
-        top: 16,
-        right: 16,
-        padding: "8px 12px",
-        background: "#2d6cdf",
-        color: "white",
-        border: "none",
-        borderRadius: 6,
-        cursor: "pointer",
-        fontFamily: "monospace",
-        fontSize: 13,
-        zIndex: 20,
-      }}
-    >
-      Replay
-    </button>
+
     <div
       className={`map-viewer-root${isSidebarOpen ? ' sidebar-open' : ''}`}
       data-testid="map-viewer"
     >
+
       <header className="map-viewer-header">
         <button
           type="button"
@@ -162,6 +141,22 @@ export function MapViewer() {
         <div>
           <h1>EDSim Floor Plan Viewer</h1>
         </div>
+
+        <button
+          data-testid="load-demo-replay"
+          onClick={() =>
+            loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
+              .then(setReplay)
+              .catch((e) => setReplayError(String(e)))
+          }
+          style={{
+            position: "absolute",
+            right: 16,
+          }}
+        >
+          Replay
+        </button>
+
       </header>
       <div className="map-viewer-body">
         <button
@@ -180,6 +175,7 @@ export function MapViewer() {
               return (
                 <li key={entry.id}>
                   <button
+                    style={{color: "black", backgroundColor: isActive ? "#2d6cdf" : "transparent"}}
                     type="button"
                     className={`map-list-item${isActive ? ' active' : ''}`}
                     onClick={() => {
@@ -214,27 +210,13 @@ export function MapViewer() {
           {replay && (
           
           <div className = 'legend'>
-            <h2>Persona Legend</h2>
-            <ul>
-              <li> Doctor              
-              <div style={{"background-color": "#2D6CDF"}}></div>
-              </li>
-              <li><span className="legend-color doorway" /> Bedside Nurse
-              <div style={{"background-color": "#2EA86E"}}></div>
-              </li>
-              <li><span className="legend-color doorway" /> Triage Nurse
-              <div style={{"background-color": "#F2A92F"}}></div>
-              </li>
-              <li><span className="legend-color doorway"/> Patient
-              <div style={{"background-color": "#E03B3B"}}></div>
-              </li>
-            </ul>
+            {replay && <PersonaColorLegend />}
           </div>
           )}
           <div className='disclaimer'>
             <h2>Disclaimer</h2>
 
-            <p>The ED layout is for illustrative purposes only and doesn't reflect any real-world Emergency Departments. 
+            <p>This Small ED layout is for illustrative purposes only and doesn't reflect any real-world Emergency Departments. 
               May be subject to change.</p>
           </div>
         </aside>
@@ -331,14 +313,30 @@ function ParserStats({ layout }: ParserStatsProps) {
         <dd data-testid="stat-zones">{layout.zones.length}</dd>
         <dt>Equipment</dt>
         <dd data-testid="stat-equipment">{layout.equipment.length}</dd>
-        <dt>Spawning slots</dt>
-        <dd data-testid="stat-spawning">{layout.spawningLocations.length}</dd>
         <dt>Wall segments</dt>
         <dd data-testid="stat-walls">{layout.walls.length}</dd>
         <dt>Map size</dt>
         <dd data-testid="stat-size">
           {layout.widthInTiles} × {layout.heightInTiles}
         </dd>
+      </dl>
+    </section>
+  );
+}
+
+function PersonaColorLegend() {
+  return (
+    <section data-testid="parser-stats" className="parser-stats">
+      <h2>Persona Legend</h2>
+      <dl>
+        <dt>Doctor</dt>
+        <dd> <div style={{"background-color": "#2D6CDF"}}></div></dd>
+        <dt>Bedside Nurse</dt>
+        <dd> <div style={{"background-color": "#2EA86E"}}></div></dd>
+        <dt>Triage Nurse</dt>
+        <dd> <div style={{"background-color": "#F2A92F"}}></div></dd>
+        <dt>Patient</dt>
+        <dd> <div style={{"background-color": "#E03B3B"}}></div></dd>
       </dl>
     </section>
   );

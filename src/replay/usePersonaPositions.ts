@@ -42,8 +42,6 @@ export function usePersonaPositions(args: {
   collisionMask: boolean[][];
 }): Record<string, PersonaState> {
   const personaIndex = useMemo(() => {
-    console.log("Building persona index...");
-    console.log(args.collisionMask);
     const map = new Map<string, ReplayPersona>();
     for (const p of args.personas) map.set(p.id, p);
     return map;
@@ -154,6 +152,8 @@ function pathFinder(
   const startKey = `${start.x},${start.y}`;
   const endKey = `${end.x},${end.y}`;
 
+  if (startKey === endKey) return [];
+  
   const startNode: Node = {
     x: start.x,
     y: start.y,
@@ -237,7 +237,6 @@ function reconstructPath(node: Node): { x: number; y: number }[] {
     path.unshift({ x: current.x, y: current.y });
     current = current.parent;
   }
-  console.log(path);
 
   return path;
 }
