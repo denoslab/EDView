@@ -31,7 +31,6 @@ export interface ReplayPersona {
   id: string;
   role: PersonaRole;
   finalState?: ReplayPersonaFinalState;
-  path: { x: number; y: number }[]; // null = uninitialized, [] = no pathfinding possible
 }
 
 export interface ReplayMetadata {

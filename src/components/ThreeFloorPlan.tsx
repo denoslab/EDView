@@ -219,7 +219,7 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
         <primitive
           key={key}
           object={model}
-          position={[x + 0.5, FLOOR_Y, z  + sizeZ / 2]}
+          position={[x + 0.5, -0.07, z  + sizeZ / 2]}
           rotation={[-Math.PI / 2, 0, 0]}
           scale={[FBX_SCALE/offset, sizeZ*FBX_SCALE/offset , FBX_SCALE]}
           castShadow = {false}

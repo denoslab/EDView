@@ -8,6 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? '/EDView/' : '/',
   plugins: [react()],
+  esbuild: {
+    jsxFactory: 'h',
+    jsxFragment: 'Fragment',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

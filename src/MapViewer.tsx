@@ -62,7 +62,7 @@ export function MapViewer() {
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected.id]);
 
   // Reflect the current selection in the URL so it survives reloads and
   // makes the viewer trivially shareable.
@@ -71,14 +71,14 @@ export function MapViewer() {
     const url = new URL(window.location.href);
     url.searchParams.set('map', selected.id);
     window.history.replaceState(null, '', url.toString());
-  }, [selected]);
+  }, [selected.id]);
 
   const closeSidebarOnMobile = () => setIsSidebarOpen(false);
 
   // ── Replay state ──────────────────────────────────────────────────────────
   const [replay, setReplay] = useState<ReplayFile | null>(null);
   const [replayError, setReplayError] = useState<string | null>(null);
-
+  //const [personas, setPersonas] = useState<Record<string, PersonaState>>({});
   // Auto-load from ?replay=<url> query param on mount.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -102,6 +102,7 @@ export function MapViewer() {
     personas: replay?.personas ?? [],
     currentStep: playback.currentStep,
     interpAlpha: playback.interpAlpha,
+    collisionMask: state.kind === 'ready' ? state.layout.collisionMask : [],
   });
 
   // Warn if the loaded replay targets a different map than the one displayed.
