@@ -46,7 +46,7 @@ import type {
   ZoneRegion
 } from './types.js';
 import { Grid } from '@react-three/drei';
-import { add } from 'three/tsl';
+import { add, int } from 'three/tsl';
 
 /* -------------------------------------------------------------------------- */
 /* Layer name constants                                                       */
@@ -480,17 +480,8 @@ export function extractEquipment(
         rawTileId: tileId
       });
 
-      if(type === 'receptionist_desk'){
-        out.push({
-          equipmentId: `receptionist_chair-${x}-${y}`,
-          type: 'receptionist_chair',
-          tileX: x,
-          tileY: y,
-          rotation: rotation_offset,
-          rawTileId: tileId
-        });
 
-      }
+      
 
     }
   }
@@ -634,10 +625,13 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
     let runStart: number | null = null;
     let runEnd = 0;
     for (const x of xs) {
-      let validDecorationSpot = false;
+      let validDecorationRotation = "interior";
 
-      if (tileAt(arena, x, y) !== 0) {
-        validDecorationSpot = true;
+      if (tileAt(arena, x, y) === 0) {
+        const half = layer.height / 2;
+        if (y < half)          validDecorationRotation = "top_edge";
+        else if (y > half) validDecorationRotation = "bottom_edge";
+        console.log(`Checking edge at (${x}, ${y}), validDecorationRotation: ${validDecorationRotation}`);
       }
       if (runStart === null) {
         runStart = x;
@@ -652,7 +646,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
           x2: runEnd,
           y2: y,
           type: 'wall',
-          validDecorationSpot: validDecorationSpot
+          validDecorationRotation: validDecorationRotation
         });
 
         if (x - runEnd === 1) {
@@ -663,7 +657,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
             x2: x,        // Ends where the next wall starts
             y2: y,
             type: 'doorway',
-            validDecorationSpot: false
+            validDecorationRotation: "none"
           });
         }
 
@@ -671,12 +665,17 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         runEnd = x + 1;
       }
     }
-    let validDecorationSpot = false;
 
-    if (tileAt(arena, runStart, y) !== 0) {
-      validDecorationSpot = true;
-    }
     if (runStart !== null) {
+      let validDecorationRotation = "interior";
+
+      if (tileAt(arena, runStart, y) === 0) {
+        const half = layer.height / 2;
+
+        if (y < half)          validDecorationRotation = "top_edge";
+        else if (y > half) validDecorationRotation = "bottom_edge";
+        console.log(`Checking edge at (${runStart}, ${y}), validDecorationRotation: ${validDecorationRotation}`);
+      }
       segments.push({
         orientation: 'horizontal',
         x1: runStart,
@@ -684,7 +683,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         x2: runEnd,
         y2: y,
         type: 'wall',
-        validDecorationSpot: validDecorationSpot
+        validDecorationRotation: validDecorationRotation
 
       });
     }
@@ -698,11 +697,16 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
     let runEnd = 0;
     
     for (const y of ys) {
-      let validDecorationSpot = false;
+      let validDecorationRotation = "interior";
 
-      if (tileAt(arena, x, y) !== 0) {
-        validDecorationSpot = true;
+      if (tileAt(arena, x, y) === 0) {
+        const half = layer.width / 2;
+
+        if (x < half)          validDecorationRotation = "left_edge";
+        else if (x > half) validDecorationRotation = "right_edge";
+
       }
+
       if (runStart === null) {
         runStart = y;
         runEnd = y + 1;
@@ -716,7 +720,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
           x2: x,
           y2: runEnd,
           type: 'wall',
-          validDecorationSpot: validDecorationSpot
+          validDecorationRotation: validDecorationRotation
 
         });
 
@@ -729,7 +733,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
             x2: x,        // Ends where the next wall starts
             y2: y,
             type: 'doorway',
-            validDecorationSpot: false
+            validDecorationRotation: "none"
 
           });
         }
@@ -738,12 +742,16 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         runEnd = y + 1;
       }
     }
-    let validDecorationSpot = false;
 
-    if (tileAt(arena, x, runStart) !== 0) {
-      validDecorationSpot = true;
-    }
     if (runStart !== null) {
+      let validDecorationRotation = "interior";
+
+      if (tileAt(arena, x, runStart) === 0) {
+        console.log(`Checking edge at (${x}, ${runStart})`);
+        const half = layer.width / 2;
+        if (x < half)          validDecorationRotation = "left_edge";
+        else if (x > half) validDecorationRotation = "right_edge";
+      }
       segments.push({
         orientation: 'vertical',
         x1: x,
@@ -751,7 +759,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         x2: x,
         y2: runEnd,
         type: 'wall',
-        validDecorationSpot: validDecorationSpot
+        validDecorationRotation: validDecorationRotation
 
       });
     }

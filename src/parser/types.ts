@@ -178,7 +178,7 @@ export interface WallSegment {
   x2: number;
   y2: number;
   type: 'wall' | 'doorway';
-  validDecorationSpot: boolean;
+  validDecorationRotation: string;
 }
 
 /**

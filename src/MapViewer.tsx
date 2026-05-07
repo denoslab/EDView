@@ -211,6 +211,32 @@ export function MapViewer() {
           {state.kind === 'ready' ? (
             <ParserStats layout={state.layout} />
           ) : null}
+          {replay && (
+          
+          <div className = 'legend'>
+            <h2>Persona Legend</h2>
+            <ul>
+              <li> Doctor              
+              <div style={{"background-color": "#2D6CDF"}}></div>
+              </li>
+              <li><span className="legend-color doorway" /> Bedside Nurse
+              <div style={{"background-color": "#2EA86E"}}></div>
+              </li>
+              <li><span className="legend-color doorway" /> Triage Nurse
+              <div style={{"background-color": "#F2A92F"}}></div>
+              </li>
+              <li><span className="legend-color doorway"/> Patient
+              <div style={{"background-color": "#E03B3B"}}></div>
+              </li>
+            </ul>
+          </div>
+          )}
+          <div className='disclaimer'>
+            <h2>Disclaimer</h2>
+
+            <p>The ED layout is for illustrative purposes only and doesn't reflect any real-world Emergency Departments. 
+              May be subject to change.</p>
+          </div>
         </aside>
 
         <main className="map-viewer-canvas" data-testid="map-viewer-canvas-host">

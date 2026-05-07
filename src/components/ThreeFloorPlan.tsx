@@ -28,16 +28,17 @@ import * as THREE from 'three';
 import { TextureLoader } from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { Text } from 'troika-three-text';
-import type { MapLayout, EquipmentPlacement, ZoneRegion, WallDecorationType } from '@/parser/types';
+import type { MapLayout, EquipmentPlacement, ZoneRegion, WallDecorationType, EquipmentType } from '@/parser/types';
 import type { PersonaState } from '@/replay/usePersonaPositions';
 import { AgentLayer } from './AgentLayer';
 import { CANVAS_BACKGROUND_COLOR } from '@/theme/colors';
 import { start } from 'repl';
-import { add } from 'three/tsl';
+import { add, string } from 'three/tsl';
 import { zoneDisplayName } from '@/parser';
 import { StringController } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { seededRandom } from 'three/src/math/MathUtils.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { get } from 'http';
 // Extend react-three-fiber with the Text component
 extend({ Text });
 
@@ -253,7 +254,7 @@ function Walls({ layout }: { layout: MapLayout }) {
     z: number;
     rotY: number;
     type: THREE.Group;
-    decoration?: WallDecorationType | null;
+    decoration?: WallDecorationType;
   }> = [];
   let decorationSeed = 2; // Seed for wall decoration randomization, incremented for each wall segment
   layout.walls.forEach((wall, i) => {
@@ -263,10 +264,8 @@ function Walls({ layout }: { layout: MapLayout }) {
       const endX = Math.max(wall.x1, wall.x2);
 
       for (let x = startX; x < endX; x++) {
-        let decoration: WallDecorationType | null = null;
-        if(wall.validDecorationSpot){ // Avoid placing decorations on the outer walls of the map
-          decoration = addWallDecorations(decorationSeed++);
-        }
+        const decoration = addWallDecorations(decorationSeed++, wall.validDecorationRotation);
+        
 
         wallPlacements.push({
           key: `wall-h-${i}-${x}`,
@@ -282,10 +281,8 @@ function Walls({ layout }: { layout: MapLayout }) {
       const startZ = Math.min(wall.y1, wall.y2);
       const endZ = Math.max(wall.y1, wall.y2);
       for (let z = startZ; z < endZ; z++) {
-        let decoration: WallDecorationType | null = null;
-        if(wall.validDecorationSpot){ // Avoid placing decorations on the outer walls of the map
-          decoration = addWallDecorations(decorationSeed++);
-        }
+        const decoration = addWallDecorations(decorationSeed++, wall.validDecorationRotation);
+        
         wallPlacements.push({
           key: `wall-v-${i}-${z}`,
           x,
@@ -308,25 +305,33 @@ function Walls({ layout }: { layout: MapLayout }) {
   );
 }
 
-function addWallDecorations(seed: number): WallDecorationType {
+function addWallDecorations(seed: number, validDecorationRotation: string): WallDecorationType {
   // Implementation for adding wall decorations
-
+  if(validDecorationRotation === "none") return {modelName: null}; // No decorations for doorways
+  
   const wallDecorations: Array<WallDecorationType> =  [{modelName: 'cabinet.fbx', yOffset: 0},
                             {modelName: 'plant.fbx', yOffset: 0}, 
                             {modelName: 'tv.fbx', yOffset: 1, zOffset: -0.2}  ,
-                            {modelName: 'magazine.fbx', yOffset: 0}]; // Example decorations
-
-  const decorationProbability = 0.5; // 30% chance to add a decoration to a wall
+                            {modelName: 'table_magazines.fbx', yOffset: 0},
+                            {modelName: 'garbage.fbx'}]; // Example decorations
+               
+  const decorationProbability = 0.3; // 30% chance to add a decoration to a wall
   if (seededRandom(seed) < decorationProbability) {
     // Add a decoration to the wall
     const randomItem = wallDecorations[Math.floor(seededRandom(seed + 1) * wallDecorations.length)];
     if (randomItem) {
       let yRotation = 0; 
-      let zOffset = -0.26;
-      const rotationProbability = 0.5; // 50% chance to rotate the decoration
-      if (seededRandom(seed + 2) < rotationProbability) {
+      let zOffset = randomItem.zOffset || -0.26; // Default zOffset if not specified in the decoration
+      if(validDecorationRotation === "interior"){
+        const rotationProbability = 0.5; // 50% chance to rotate the decoration
+        if (seededRandom(seed + 2) < rotationProbability) {
+          yRotation = Math.PI; // Rotate 90 degrees
+          zOffset = Math.abs(zOffset); // Adjust zOffset for the rotated position
+        }
+      }
+      else if(validDecorationRotation === "right_edge" || validDecorationRotation === "bottom_edge"){
         yRotation = Math.PI; // Rotate 90 degrees
-        zOffset = 0.26; // Adjust zOffset for the rotated position
+        zOffset = Math.abs(zOffset); // Adjust zOffset for the rotated position
       }
       return {...randomItem,yRotation,zOffset};    
     }
@@ -495,10 +500,9 @@ function FurnitureModel({
 
   if (!model) return null;
   return (
+    
     <primitive
       object={model}
-      position={[piece.tileX + 0.5, FLOOR_Y, piece.tileY + 0.5]}
-      rotation={[-Math.PI / 2, 0, piece.rotation]}
       scale={[scale, scale, scale]}
           />
   );
@@ -518,11 +522,15 @@ function Furniture({ layout }: { layout: MapLayout }) {
         if (!modelUrl) return null;
 
         return (
-          <FurnitureModel
-            key={piece.equipmentId}
-            piece={piece}
-            modelUrl={modelUrl}
-          />
+          <group position={[piece.tileX + 0.5, FLOOR_Y, piece.tileY + 0.5]}
+                rotation={[-Math.PI / 2, 0, piece.rotation]}
+                key={piece.equipmentId}>
+            <FurnitureModel
+              piece={piece}
+              modelUrl={modelUrl}
+            />
+            <DecorationSetPiece type={piece} />
+          </group>
         );
       })}
     </>
@@ -558,7 +566,40 @@ function Decoration({
   );
 }
 
-/**
+function DecorationSetPiece({type}: {type: EquipmentPlacement}) {
+  const decorations = getDecorationForType(type.type);
+
+  if (!decorations) return null;
+
+  return (
+    <>
+      {decorations.map((decoration) => (
+        <Decoration
+          key={`${type.equipmentId}-${decoration.url}`}
+          url={decoration.url}
+          position={decoration.position}
+          rotation={decoration.rotation}
+          scale={decoration.scale}
+        />
+      ))}
+    </>
+  );
+}
+
+
+
+
+function getDecorationForType(type: string): Array<{ url: string; position: [number, number, number]; rotation?: [number, number, number]; scale?: number }> | null {
+  if (type === 'receptionist_desk') {
+    return [
+      { url: MODEL_URLS['receptionist_chair'], position: [0, 1, 0], rotation: [0, 0, 0], scale: MODEL_SCALE['receptionist_chair'] },
+      { url: `${base}models/hospital/garbage.fbx`, position: [-1, 1, 0], rotation: [0, 0, 0], scale: MODEL_SCALE['receptionist_chair'] },
+
+    ];
+  }
+  return null;
+}
+    /**
  * Places all reception/waiting room decorations from the Hospital pack
  * inside the first waiting_room zone: reception desk with PC, magazine
  * tables, plants, garbage, TV, bookshelf.
@@ -655,11 +696,6 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
       <Decoration
         url={`${base}models/hospital/plant.fbx`}
         position={[minX + 2, FLOOR_Y, maxY - 2]}
-        scale={s}
-      />
-      <Decoration
-        url={`${base}models/hospital/garbage.fbx`}
-        position={[maxX - 2, FLOOR_Y, maxY - 2]}
         scale={s}
       />
       <Decoration
