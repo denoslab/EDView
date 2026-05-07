@@ -12,7 +12,8 @@ and Kenney furniture models.
 ## Quick start
 
 ```bash
-./run_map_viewer.sh        # install deps (first run) and start dev server
+npm install     # install deps (first time run only)
+npm run view-map # Starts web server
 ```
 
 Open <http://127.0.0.1:5173>. You should see a 3D floor plan of the ED
@@ -91,8 +92,7 @@ environment/react_frontend/
 ## Running the tests
 
 ```bash
-./run_map_viewer.sh test        # 51 vitest unit tests (parser)
-./run_map_viewer.sh test:e2e    # 6 Playwright e2e tests (viewer)
+npm run test        # 51 vitest unit tests (parser)
 ```
 
 ## Adding a new map

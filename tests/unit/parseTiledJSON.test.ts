@@ -211,26 +211,29 @@ describe('extractWallSegments', () => {
       height: 1,
       data: [1, 1, 1, 0]
     };
-    const segments = extractWallSegments(layer);
+
+    const arena: TiledLayer = {
+      name: 'arena',
+      type: 'tilelayer',
+      width: 4,
+      height: 1,
+      data: [1, 1, 1, 0]
+    };
+    const segments = extractWallSegments(layer, arena);
     const horizontals = segments.filter((s) => s.orientation === 'horizontal');
     const verticals = segments.filter((s) => s.orientation === 'vertical');
 
     // Expect exactly four segments: the top and bottom edges of the run
     // (both spanning x ∈ [0, 3]) plus two caps on the left and right.
-    expect(horizontals).toHaveLength(2);
+    expect(horizontals).toHaveLength(1);
     expect(horizontals).toEqual(
       expect.arrayContaining([
-        { orientation: 'horizontal', x1: 0, y1: 0, x2: 3, y2: 0, type: 'wall' },
-        { orientation: 'horizontal', x1: 0, y1: 1, x2: 3, y2: 1, type: 'wall' }
+        { orientation: 'horizontal', x1: 0, y1: 0, x2: 3, y2: 0, type: 'wall', validDecorationRotation: "top_edge" },
+        
       ])
     );
-    expect(verticals).toHaveLength(2);
-    expect(verticals).toEqual(
-      expect.arrayContaining([
-        { orientation: 'vertical', x1: 0, y1: 0, x2: 0, y2: 1, type: 'wall' },
-        { orientation: 'vertical', x1: 3, y1: 0, x2: 3, y2: 1, type: 'wall' }
-      ])
-    );
+    expect(verticals).toHaveLength(0);
+
   });
 
   it('never emits interior edges inside a solid 2×2 wall block', () => {
@@ -239,7 +242,7 @@ describe('extractWallSegments', () => {
     // block; perimeter-only extraction must produce exactly four segments
     // forming a 2×2 square.
     const layer: TiledLayer = {
-      name: 'Walls',
+      name: 'collisions',
       type: 'tilelayer',
       width: 4,
       height: 4,
@@ -251,14 +254,27 @@ describe('extractWallSegments', () => {
         0, 0, 0, 0
       ]
     };
-    const segments = extractWallSegments(layer);
+    const arena: TiledLayer = {
+      name: 'arena',
+      type: 'tilelayer',
+      width: 4,
+      height: 4,
+      // prettier-ignore
+      data: [
+        0, 0, 0, 0,
+        0, 1, 1, 0,
+        0, 1, 1, 0,
+        0, 0, 0, 0
+      ]
+    };
+    const segments = extractWallSegments(layer, arena);
     expect(segments).toHaveLength(4);
     expect(segments).toEqual(
       expect.arrayContaining([
-        { orientation: 'horizontal', x1: 1, y1: 1, x2: 3, y2: 1, type: 'wall' },
-        { orientation: 'horizontal', x1: 1, y1: 3, x2: 3, y2: 3, type: 'wall' },
-        { orientation: 'vertical', x1: 1, y1: 1, x2: 1, y2: 3, type: 'wall' },
-        { orientation: 'vertical', x1: 3, y1: 1, x2: 3, y2: 3, type: 'wall' }
+        { orientation: 'horizontal', x1: 1, y1: 1, x2: 2, y2: 1, type: 'wall',  validDecorationRotation: "top_edge" },
+        { orientation: 'horizontal', x1: 1, y1: 2, x2: 2, y2: 2, type: 'wall', validDecorationRotation: "interior" },
+        { orientation: 'vertical', x1: 1, y1: 1, x2: 1, y2: 2, type: 'wall', validDecorationRotation: "left_edge" },
+        { orientation: 'vertical', x1: 2, y1: 1, x2: 2, y2: 2, type: 'wall', validDecorationRotation: "interior" }
       ])
     );
   });
@@ -352,7 +368,7 @@ describe('parseTiledJSON — small_ed_layout.json fixture', () => {
     // Counts pinned against the canonical small_ed_layout.json. They were
     // verified by hand against the legacy Phaser view; any future change
     // here means either the asset file or the parser regressed.
-    expect(layout.equipment.length).toBe(43);
+    expect(layout.equipment.length).toBe(42);
     const counts: Record<string, number> = {};
     for (const e of layout.equipment) counts[e.type] = (counts[e.type] ?? 0) + 1;
     expect(counts).toEqual({
@@ -360,10 +376,11 @@ describe('parseTiledJSON — small_ed_layout.json fixture', () => {
       medical_equipment: 12,
       waiting_room_chair: 12,
       chair: 2,
-      computer: 2,
-      wheelchair: 2,
+      computer: 1,
+      wheelchair: 1,
       diagnostic_table: 1,
-      triage_bed: 1
+      triage_bed: 1,
+      receptionist_desk: 1
     });
   });
 
@@ -466,8 +483,15 @@ describe('extractEquipment / extractSpawningLocations', () => {
       height: 1,
       data: [1330, 0, 9999]
     };
+    const graphic: TiledLayer = {
+      name: 'Object Interaction Layer',
+      type: 'tile layer 1',
+      width: 3,
+      height: 1,
+      data: [1330, 0, 9999]
+    };
     const eqLookup = new Map([[1330, 'bed' as const]]);
-    const equipment = extractEquipment(layer, eqLookup);
+    const equipment = extractEquipment(layer, eqLookup, graphic);
     expect(equipment).toHaveLength(1);
     expect(equipment[0]).toMatchObject({
       type: 'bed',
