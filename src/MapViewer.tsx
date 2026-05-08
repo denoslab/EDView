@@ -329,13 +329,13 @@ function PersonaColorLegend() {
       <h2>Persona Legend</h2>
       <dl>
         <dt>Doctor</dt>
-        <dd> <div style={{"background-color": "#2D6CDF"}}></div></dd>
+        <dd> <div style={{"backgroundColor": "#2D6CDF"}}></div></dd>
         <dt>Bedside Nurse</dt>
-        <dd> <div style={{"background-color": "#2EA86E"}}></div></dd>
+        <dd> <div style={{"backgroundColor": "#2EA86E"}}></div></dd>
         <dt>Triage Nurse</dt>
-        <dd> <div style={{"background-color": "#F2A92F"}}></div></dd>
+        <dd> <div style={{"backgroundColor": "#F2A92F"}}></div></dd>
         <dt>Patient</dt>
-        <dd> <div style={{"background-color": "#E03B3B"}}></div></dd>
+        <dd> <div style={{"backgroundColor": "#E03B3B"}}></div></dd>
       </dl>
     </section>
   );

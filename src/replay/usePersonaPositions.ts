@@ -93,10 +93,16 @@ return useMemo(() => {
       if (progress >= 1) {
         // Move to next step
         const nextStep = path.shift();
-        toX = nextStep.x;
-        toY = nextStep.y;
-        progress = 0;
-        personaPaths.set(id, path);
+        if (!nextStep) {
+          // Path completed, snap to target
+          toX = targetX;
+          toY = targetY;
+        } else {
+          toX = nextStep.x;
+          toY = nextStep.y;
+          progress = 0;
+          personaPaths.set(id, path);
+        }
       } else {
         // Interpolate between current and next step
         const currentStep = path[0];

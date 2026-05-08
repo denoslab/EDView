@@ -752,19 +752,6 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
   return segments;
 }
 
-export function getWallRotation(layer: TiledLayer, x: number, y: number): number {
-  const isWall = (x: number, y: number): boolean => {
-    if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false;
-    return (layer.data[y * layer.width + x] ?? 0) !== 0;
-  };
-
-
-  if (isWall(x + 1, y) && isWall(x - 1, y)) {
-    return 0; // Vertical wall
-  } else if (isWall(x, y - 1) && isWall(x, y + 1)) {
-    return 1; // Horizontal wall
-  }
-}
 
 /* -------------------------------------------------------------------------- */
 /* Collision mask extraction                                                  */
