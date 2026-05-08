@@ -615,7 +615,6 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
   const { minX, minY, maxX, maxY } = waitingZone.bounds;
   const cx = (minX + maxX + 1) / 2;
   const cz = (minY + maxY + 1) / 2;
-  const s = [FBX_SCALE, FBX_SCALE, FBX_SCALE];
 
   // Place items relative to zone bounds using common sense for a
   // hospital reception area:
@@ -644,7 +643,7 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
       <Decoration
         url={`${base}models/hospital/table_magazines.fbx`}
         position={[cx, FLOOR_Y, cz + 1]}
-        scale={s}
+        scale={[FBX_SCALE, FBX_SCALE * 1.2, FBX_SCALE]}
       />
 
       {/* === PERIPHERY === */}
@@ -652,23 +651,23 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
         url={`${base}models/hospital/tv.fbx`}
         position={[maxX + 0.8, FLOOR_Y + 1.0, cz + 1]}
         rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
-        scale={s}
+        scale={[FBX_SCALE, FBX_SCALE * 1.2, FBX_SCALE]}
       />
       <Decoration
         url={`${base}models/hospital/bookshelf.fbx`}
         position={[minX + 0.2, FLOOR_Y, cz]}
         rotation={[-Math.PI / 2, 0, Math.PI / 2]}
-        scale={s}
+        scale={[FBX_SCALE, FBX_SCALE * 1.2, FBX_SCALE]}
       />
       <Decoration
         url={`${base}models/hospital/plant.fbx`}
         position={[minX + 2, FLOOR_Y, maxY - 2]}
-        scale={s}
+        scale={[FBX_SCALE, FBX_SCALE * 1.2, FBX_SCALE]}
       />
       <Decoration
         url={`${base}models/hospital/exit_sign.fbx`}
         position={[cx, FLOOR_Y + 1.5, maxY]}
-        scale={s}
+        scale={[FBX_SCALE, FBX_SCALE * 1.2, FBX_SCALE]}
       />
     </>
   );

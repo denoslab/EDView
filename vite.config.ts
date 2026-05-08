@@ -9,8 +9,6 @@ export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? '/EDView/' : '/',
   plugins: [react()],
   esbuild: {
-    jsxFactory: 'h',
-    jsxFragment: 'Fragment',
   },
   resolve: {
     alias: {
