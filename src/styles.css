@@ -43,7 +43,7 @@ body,
  * is hidden on wide viewports via a media query further down.
  */
 .sidebar-toggle {
-  display: none;
+  display: flex;
   flex-direction: column;
   justify-content: space-between;
   width: 40px;
@@ -109,12 +109,20 @@ body,
 }
 
 .map-viewer-sidebar {
-  width: 280px;
-  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(86vw, 320px);
+  max-width: 100%;
+  z-index: 30;
   padding: 20px;
   background: #ffffff;
   border-right: 1px solid #e1e4e8;
   overflow-y: auto;
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.2);
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
 }
 
 .map-viewer-sidebar h2 {
@@ -188,11 +196,6 @@ body,
   cursor: pointer;
 }
 
-.parser-stats {
-  margin-top: 24px;
-
-}
-
 .parser-stats dl {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -243,6 +246,15 @@ body,
   color: #5f6b7a;
 }
 
+
+.map-viewer-root.sidebar-open .map-viewer-sidebar {
+  transform: translateX(0);
+}
+
+.map-viewer-root.sidebar-open .sidebar-backdrop {
+  display: block;
+}
+
 /*
  * Mobile layout.
  *
@@ -271,26 +283,6 @@ body,
     display: flex;
   }
 
-  .map-viewer-sidebar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: min(86vw, 320px);
-    max-width: 100%;
-    z-index: 30;
-    box-shadow: 2px 0 12px rgba(15, 23, 42, 0.2);
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-  }
-
-  .map-viewer-root.sidebar-open .map-viewer-sidebar {
-    transform: translateX(0);
-  }
-
-  .map-viewer-root.sidebar-open .sidebar-backdrop {
-    display: block;
-  }
 
   /*
    * The toggle button targets should be comfortably tappable.
@@ -319,48 +311,4 @@ body,
        the title has room next to the menu button. */
     display: none;
   }
-}
-
-
-.disclaimer{
-  margin-top: 24px;
-}
-
-.disclaimer p{
-  font-size: 13px;
-  color: #5f6b7a;
-}
-
-.legend {
-  margin-top: 24px;
-  font-size: 13px;
-}
-.legend ul {
-  padding-left: 12px;
-}
-.legend li {
-  margin-bottom: 6px;
-
-}
-.legend div {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  margin-left: 5px;
-  border-radius: 2px;
-}
-
-button {
-  cursor: pointer;
-  background-color: #2d6cdf;
-  border-radius: 6px;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  font-size: 13px;
-  z-index: 20;
-  font-family: monospace;
-
-
 }
