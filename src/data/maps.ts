@@ -17,7 +17,7 @@
 import type { LoadMapOptions } from '@/parser/loadMapLayout';
 
 import smallEdJsonUrl from '@maps/visuals/small_ed_layout.json?url';
-import foothillsJsonUrl from '@maps/visuals/foothills_ed_layout.json?url';
+//import foothillsJsonUrl from '@maps/visuals/foothills_ed_layout.json?url';
 import arenaBlocksUrl from '@maps/matrix/special_blocks/arena_blocks.csv?url';
 import gameObjectBlocksUrl from '@maps/matrix/special_blocks/game_object_blocks.csv?url';
 import spawningBlocksUrl from '@maps/matrix/special_blocks/spawning_location_blocks.csv?url';

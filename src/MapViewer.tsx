@@ -22,7 +22,6 @@ import { ReplayDropZone } from '@/components/ReplayDropZone';
 import { loadMapLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
-import { color } from 'three/tsl';
 
 type LoadingState =
   | { kind: 'idle' }

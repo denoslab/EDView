@@ -28,18 +28,13 @@ import * as THREE from 'three';
 import { TextureLoader } from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { Text } from 'troika-three-text';
-import type { MapLayout, EquipmentPlacement, ZoneRegion, WallDecorationType, EquipmentType } from '@/parser/types';
+import type { MapLayout, EquipmentPlacement, ZoneRegion, WallDecorationType } from '@/parser/types';
 import type { PersonaState } from '@/replay/usePersonaPositions';
 import { AgentLayer } from './AgentLayer';
 import { CANVAS_BACKGROUND_COLOR } from '@/theme/colors';
-import { start } from 'repl';
-import { add, string } from 'three/tsl';
-import { zoneDisplayName } from '@/parser';
-import { StringController } from 'three/examples/jsm/libs/lil-gui.module.min.js';
+
 import { seededRandom } from 'three/src/math/MathUtils.js';
-import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { get } from 'http';
-import { url } from 'inspector';
+
 // Extend react-three-fiber with the Text component
 extend({ Text });
 

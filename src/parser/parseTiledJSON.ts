@@ -31,7 +31,6 @@
  * @packageDocumentation
  */
 
-import { g } from 'node_modules/vitest/dist/chunks/suite.d.udJtyAgw.js';
 import type {
   EquipmentPlacement,
   EquipmentType,
@@ -45,8 +44,7 @@ import type {
   ZoneId,
   ZoneRegion
 } from './types.js';
-import { Grid } from '@react-three/drei';
-import { add, int } from 'three/tsl';
+
 
 /* -------------------------------------------------------------------------- */
 /* Layer name constants                                                       */
