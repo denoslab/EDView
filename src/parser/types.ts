@@ -17,7 +17,6 @@
  * @packageDocumentation
  */
 
-import * as THREE from 'three';
 /**
  * The eight zone categories defined by the EDSim seed map.
  *

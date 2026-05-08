@@ -28,7 +28,7 @@ describe("validateReplay", () => {
   });
 
   test("rejects missing mapId", () => {
-    const { mapId, ...rest } = VALID;
+    const { ...rest } = VALID;
     expect(() => validateReplay(rest)).toThrow(/mapId/);
   });
 

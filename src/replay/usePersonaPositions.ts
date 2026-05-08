@@ -31,8 +31,8 @@ const FLOATING_Y = 1.1;
 // the NE/SW diagonal and 4-persona groups on the four diagonals — never
 // on cardinal axes. This keeps nameplates from projecting onto the same
 // screen-Y line and overlapping when viewed from the default camera angle.
-const FAN_RADIUS = 0.32;
-const FAN_PHASE = Math.PI / 4;
+// const FAN_RADIUS = 0.32;
+// const FAN_PHASE = Math.PI / 4;
 
 export function usePersonaPositions(args: {
   expanded: ExpandedFrame[];
@@ -166,13 +166,11 @@ function pathFinder(
 
   while (openSet.size > 0) {
     let current = Array.from(openSet.values())[0];
-    let currentIdx = 0;
 
     // Find node with lowest f score
-    Array.from(openSet.entries()).forEach(([_, node], idx) => {
+    Array.from(openSet.entries()).forEach(([_, node]) => {
       if ((node.g + node.h) < (current.g + current.h)) {
         current = node;
-        currentIdx = idx;
       }
     });
 
