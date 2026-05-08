@@ -17,6 +17,7 @@
  * @packageDocumentation
  */
 
+import * as THREE from 'three';
 /**
  * The eight zone categories defined by the EDSim seed map.
  *
@@ -177,6 +178,7 @@ export interface WallSegment {
   x2: number;
   y2: number;
   type: 'wall' | 'doorway';
+  validDecorationRotation: string;
 }
 
 /**
@@ -271,4 +273,17 @@ export interface SpecialBlocks {
   arenaBlocks: ArenaBlockRow[];
   gameObjectBlocks: GameObjectBlockRow[];
   spawningBlocks: SpawningBlockRow[];
+}
+
+/**
+ * Wall decoration types that can be placed on wall segments.
+ */
+export interface WallDecorationType {
+  /** The filename of the FBX model for the decoration. */
+  /** The label for the decoration type. */
+  yOffset?: number;
+  xOffset?: number;
+  zOffset?: number;
+  yRotation?: number;
+  modelName: string | null;
 }

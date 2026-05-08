@@ -31,6 +31,7 @@
  * @packageDocumentation
  */
 
+import { g } from 'node_modules/vitest/dist/chunks/suite.d.udJtyAgw.js';
 import type {
   EquipmentPlacement,
   EquipmentType,
@@ -44,6 +45,8 @@ import type {
   ZoneId,
   ZoneRegion
 } from './types.js';
+import { Grid } from '@react-three/drei';
+import { add, int } from 'three/tsl';
 
 /* -------------------------------------------------------------------------- */
 /* Layer name constants                                                       */
@@ -442,7 +445,7 @@ function simplifyCollinear(polygon: TilePoint[]): TilePoint[] {
 export function extractEquipment(
   layer: TiledLayer,
   equipmentLookup: Map<number, EquipmentType>,
-  graphic?: TiledLayer
+  graphic: TiledLayer
 ): EquipmentPlacement[] {
   const out: EquipmentPlacement[] = [];
   for (let y = 0; y < layer.height; y++) {
@@ -454,8 +457,8 @@ export function extractEquipment(
       const type = equipmentLookup.get(tileId);
       if (!type) continue;
 
-      const rotationID = graphic ? tileAt(graphic, x, y) : 0;
-
+      const rotationID = tileAt(graphic, x, y);
+                       
       if (rotationID > 3000000000) {
         rotation_offset = -Math.PI *2;
       }
@@ -475,18 +478,6 @@ export function extractEquipment(
         rotation: rotation_offset,
         rawTileId: tileId
       });
-
-      if(type === 'receptionist_desk'){
-        out.push({
-          equipmentId: `receptionist_chair-${x}-${y}`,
-          type: 'receptionist_chair',
-          tileX: x,
-          tileY: y,
-          rotation: rotation_offset,
-          rawTileId: tileId
-        });
-
-      }
 
     }
   }
@@ -554,7 +545,7 @@ export function extractSpawningLocations(
  * @returns Horizontal and vertical wall segments forming the outer (and
  *          any inner) perimeter of every connected wall region.
  */
-export function extractWallSegments(layer: TiledLayer): WallSegment[] {
+export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallSegment[] {
   const isWall = (x: number, y: number): boolean => {
     if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false;
     return (layer.data[y * layer.width + x] ?? 0) !== 0;
@@ -586,19 +577,35 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
   for (let y = 0; y < layer.height; y++) {
     for (let x = 0; x < layer.width; x++) {
       if (!isWall(x, y)) continue;
-      // Top edge (between this tile and the tile above).
-      if (!isWall(x, y - 1)) addHorizontal(y, x);
-      // Bottom edge (between this tile and the tile below).
-      if (!isWall(x, y + 1)) addHorizontal(y + 1, x);
-      // Left edge (between this tile and the tile on the left).
-      if (!isWall(x - 1, y)) addVertical(x, y);
-      // Right edge (between this tile and the tile on the right).
-      if (!isWall(x + 1, y)) addVertical(x + 1, y);
+      if (!isWall(x + 1, y) && !isWall(x - 1, y )) {
+        addVertical(x, y); // Vertical wall
+      } 
+      else if (isWall(x, y + 1) && isWall(x + 1, y)) {
+        addVertical(x, y); // Vertical wall
+      }
+      else if (isWall(x, y + 1) && isWall(x - 1, y)) {
+        addVertical(x, y); // Vertical wall
+      }
+
+
+      if (isWall(x + 1, y)) {
+        addHorizontal(y, x); // Horizontal wall
+
+      }
+
+      if ( isWall(x - 1, y) && !isWall(x, y + 1) && !isWall(x, y - 1)) {
+        addHorizontal(y, x); 
+      }
+      if (isWall(x, y - 1) && isWall(x + 1, y)) {
+        addHorizontal(y, x); // Left edge
+                //addVertical(x, y);
+
+      }
+
     }
   }
 
   const segments: WallSegment[] = [];
-
   // Merge consecutive horizontal edges sharing the same y value into runs.
   const sortedYs = Array.from(horizontalEdges.keys()).sort((a, b) => a - b);
   for (const y of sortedYs) {
@@ -606,6 +613,13 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
     let runStart: number | null = null;
     let runEnd = 0;
     for (const x of xs) {
+      let validDecorationRotation = "interior";
+
+      if (tileAt(arena, x, y) === 0) {
+        const half = layer.height / 2;
+        if (y < half)          validDecorationRotation = "top_edge";
+        else if (y > half) validDecorationRotation = "bottom_edge";
+      }
       if (runStart === null) {
         runStart = x;
         runEnd = x + 1;
@@ -618,7 +632,8 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
           y1: y,
           x2: runEnd,
           y2: y,
-          type: 'wall'
+          type: 'wall',
+          validDecorationRotation: validDecorationRotation
         });
 
         if (x - runEnd === 1) {
@@ -628,7 +643,8 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
             y1: y,
             x2: x,        // Ends where the next wall starts
             y2: y,
-            type: 'doorway'
+            type: 'doorway',
+            validDecorationRotation: "none"
           });
         }
 
@@ -636,14 +652,25 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
         runEnd = x + 1;
       }
     }
+
     if (runStart !== null) {
+      let validDecorationRotation = "interior";
+
+      if (tileAt(arena, runStart, y - 1) === 0 || tileAt(arena, runStart, y + 1) === 0) {
+        const half = layer.height / 2;
+
+        if (y < half)          validDecorationRotation = "top_edge";
+        else if (y > half) validDecorationRotation = "bottom_edge";
+      }
       segments.push({
         orientation: 'horizontal',
         x1: runStart,
         y1: y,
         x2: runEnd,
         y2: y,
-        type: 'wall'
+        type: 'wall',
+        validDecorationRotation: validDecorationRotation
+
       });
     }
   }
@@ -654,7 +681,18 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
     const ys = Array.from(verticalEdges.get(x)!).sort((a, b) => a - b);
     let runStart: number | null = null;
     let runEnd = 0;
+    
     for (const y of ys) {
+      let validDecorationRotation = "interior";
+
+      if (tileAt(arena, x, y) === 0) {
+        const half = layer.width / 2;
+
+        if (x < half)      validDecorationRotation = "left_edge";
+        else if (x > half) validDecorationRotation = "right_edge";
+
+      }
+
       if (runStart === null) {
         runStart = y;
         runEnd = y + 1;
@@ -667,7 +705,9 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
           y1: runStart,
           x2: x,
           y2: runEnd,
-          type: 'wall'
+          type: 'wall',
+          validDecorationRotation: validDecorationRotation
+
         });
 
 
@@ -678,7 +718,9 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
             y1: runEnd,
             x2: x,        // Ends where the next wall starts
             y2: y,
-            type: 'doorway'
+            type: 'doorway',
+            validDecorationRotation: "none"
+
           });
         }
 
@@ -686,20 +728,44 @@ export function extractWallSegments(layer: TiledLayer): WallSegment[] {
         runEnd = y + 1;
       }
     }
+
     if (runStart !== null) {
+      let validDecorationRotation = "interior";
+
+      if (tileAt(arena, x-1, runStart) === 0 || tileAt(arena, x+1, runStart) === 0) {
+        const half = layer.width / 2;
+        if (x < half)          validDecorationRotation = "left_edge";
+        else if (x > half) validDecorationRotation = "right_edge";
+      }
       segments.push({
         orientation: 'vertical',
         x1: x,
         y1: runStart,
         x2: x,
         y2: runEnd,
-        type: 'wall'
+        type: 'wall',
+        validDecorationRotation: validDecorationRotation
+
       });
     }
   }
 
 
   return segments;
+}
+
+export function getWallRotation(layer: TiledLayer, x: number, y: number): number {
+  const isWall = (x: number, y: number): boolean => {
+    if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false;
+    return (layer.data[y * layer.width + x] ?? 0) !== 0;
+  };
+
+
+  if (isWall(x + 1, y) && isWall(x - 1, y)) {
+    return 0; // Vertical wall
+  } else if (isWall(x, y - 1) && isWall(x, y + 1)) {
+    return 1; // Horizontal wall
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -833,7 +899,7 @@ export function parseTiledJSON(
     zones: extractZoneRegions(arenaLayer, arenaLookup),
     equipment: extractEquipment(objectLayer, equipmentLookup, graphicLayer),
     spawningLocations: extractSpawningLocations(spawningLayer, spawningLookup),
-    walls: extractWallSegments(wallsLayer),
+    walls: extractWallSegments(wallsLayer, arenaLayer),
     collisionMask: extractCollisionMask(collisionsLayer)
   };
 }

@@ -53,18 +53,18 @@ export const MAP_CATALOGUE: MapCatalogueEntry[] = [
       spawningBlocksUrl
     }
   },
-  {
-    id: 'foothills_ed_layout',
-    displayName: 'Foothills ED Layout',
-    description: '122 × 123 high-fidelity reproduction of the Foothills ED.',
-    load: {
-      mapId: 'foothills_ed_layout',
-      tiledJsonUrl: foothillsJsonUrl,
-      arenaBlocksUrl,
-      gameObjectBlocksUrl,
-      spawningBlocksUrl
-    }
-  }
+  // {
+  //   id: 'foothills_ed_layout',
+  //   displayName: 'Foothills ED Layout',
+  //   description: '122 × 123 high-fidelity reproduction of the Foothills ED.',
+  //   load: {
+  //     mapId: 'foothills_ed_layout',
+  //     tiledJsonUrl: foothillsJsonUrl,
+  //     arenaBlocksUrl,
+  //     gameObjectBlocksUrl,
+  //     spawningBlocksUrl
+  //   }
+  
 ];
 
 /**

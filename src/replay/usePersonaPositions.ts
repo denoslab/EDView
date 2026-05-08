@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { ExpandedFrame } from "./expandFrames";
 import type { PersonaRole, ReplayPersona, ReplayPersonaFinalState } from "./types";
 
@@ -39,6 +39,7 @@ export function usePersonaPositions(args: {
   personas: ReplayPersona[];
   currentStep: number;
   interpAlpha: number;
+  collisionMask: boolean[][];
 }): Record<string, PersonaState> {
   const personaIndex = useMemo(() => {
     const map = new Map<string, ReplayPersona>();
@@ -46,60 +47,196 @@ export function usePersonaPositions(args: {
     return map;
   }, [args.personas]);
 
-  return useMemo(() => {
-    const cur = args.expanded[args.currentStep];
-    const next = args.expanded[Math.min(args.currentStep + 1, args.expanded.length - 1)];
-    if (!cur) return {};
+  const personaPathsRef = useRef(new Map<string, { x: number; y: number }[]>());
+  const personaPositionsRef = useRef(new Map<string, { x: number; y: number }>());
+  const personaProgressRef = useRef(new Map<string, number>()); // Track progress 0-1 through current step
 
-    // Group personas by their integer source tile. Within each tile, sort
-    // ids alphabetically and assign each persona a slot index — that way
-    // co-located avatars always fan out into distinct positions in a ring.
-    const tileGroups = new Map<string, string[]>();
-    for (const [id, delta] of Object.entries(cur.agents)) {
-      const key = `${delta.x ?? 0},${delta.y ?? 0}`;
-      const group = tileGroups.get(key);
-      if (group) group.push(id);
-      else tileGroups.set(key, [id]);
+return useMemo(() => {
+  const cur = args.expanded[args.currentStep];
+  const next = args.expanded[Math.min(args.currentStep + 1, args.expanded.length - 1)];
+  if (!cur) return {};
+
+  const personaPaths = personaPathsRef.current;
+  const personaPositions = personaPositionsRef.current;
+  const personaProgress = personaProgressRef.current;
+
+  const out: Record<string, PersonaState> = {};
+  for (const [id, delta] of Object.entries(cur.agents)) {
+    const meta = personaIndex.get(id);
+    if (!meta) continue;
+    const role: PersonaRole = meta?.role ?? "Unknown";
+
+    const fromX = personaPositions.get(id)?.x ?? (delta.x ?? 0);
+    const fromY = personaPositions.get(id)?.y ?? (delta.y ?? 0);
+
+    const nDelta = next?.agents?.[id];
+    let targetX = nDelta?.x ?? fromX;
+    let targetY = nDelta?.y ?? fromY;
+
+    let path = personaPaths.get(id);
+    if ((!path || path.length === 0) && (Math.floor(targetX) !== Math.floor(fromX) || Math.floor(targetY) !== Math.floor(fromY))) {
+      path = pathFinder({ x: Math.floor(fromX), y: Math.floor(fromY) }, 
+                        { x: Math.floor(targetX), y: Math.floor(targetY) }, 
+                        args.collisionMask);
+      personaPaths.set(id, path);
+      personaProgress.set(id, 0);
     }
-    for (const group of tileGroups.values()) group.sort();
 
-    const out: Record<string, PersonaState> = {};
-    for (const [id, delta] of Object.entries(cur.agents)) {
-      const meta = personaIndex.get(id);
-      const role: PersonaRole = meta?.role ?? "Unknown";
+    let toX = fromX;
+    let toY = fromY;
+    let progress = personaProgress.get(id) ?? 0;
 
-      const fromX = delta.x ?? 0;
-      const fromY = delta.y ?? 0;
-      const nDelta = next?.agents?.[id];
-      const toX = nDelta?.x ?? fromX;
-      const toY = nDelta?.y ?? fromY;
+    if (path && path.length > 0) {
+      // Increment progress by 1/MOVEMENT_SPEED per frame
+      progress += 1 / 8; // Adjust this divisor to change movement speed (lower = faster)
 
-      const lerpX = fromX + (toX - fromX) * args.interpAlpha;
-      const lerpY = fromY + (toY - fromY) * args.interpAlpha;
-
-      // Per-tile fan-out: 1 persona → centered; 2+ → evenly spaced ring.
-      const tileKey = `${fromX},${fromY}`;
-      const group = tileGroups.get(tileKey)!;
-      let dx = 0;
-      let dz = 0;
-      if (group.length > 1) {
-        const slotIdx = group.indexOf(id);
-        const angle = (slotIdx / group.length) * Math.PI * 2 + FAN_PHASE;
-        dx = Math.cos(angle) * FAN_RADIUS;
-        dz = Math.sin(angle) * FAN_RADIUS;
+      if (progress >= 1) {
+        // Move to next step
+        const nextStep = path.shift();
+        toX = nextStep.x;
+        toY = nextStep.y;
+        progress = 0;
+        personaPaths.set(id, path);
+      } else {
+        // Interpolate between current and next step
+        const currentStep = path[0];
+        const prevPos = personaPositions.get(id) || { x: fromX, y: fromY };
+        toX = prevPos.x + (currentStep.x - prevPos.x) * progress;
+        toY = prevPos.y + (currentStep.y - prevPos.y) * progress;
       }
 
-      out[id] = {
-        id,
-        role,
-        worldX: lerpX + 0.5 + dx,
-        worldZ: lerpY + 0.5 + dz,
-        worldY: FLOATING_Y,
-        pronunciatio: delta.pronunciatio ?? null,
-        description: delta.description ?? null,
-        finalState: meta?.finalState,
-      };
+      personaProgress.set(id, progress);
     }
-    return out;
-  }, [args.expanded, args.currentStep, args.interpAlpha, personaIndex]);
+
+    personaPositions.set(id, { x: toX, y: toY });
+
+    const lerpX = toX;
+    const lerpY = toY;
+
+    out[id] = {
+      id,
+      role,
+      worldX: lerpX + 0.5,
+      worldZ: lerpY + 0.5,
+      worldY: FLOATING_Y,
+      pronunciatio: delta.pronunciatio ?? null,
+      description: delta.description ?? null,
+      finalState: meta?.finalState,
+    };
+  }
+  return out;
+}, [args.expanded, args.currentStep, args.interpAlpha, personaIndex]);}
+
+
+function isTileWalkable(
+  x: number,
+  y: number,
+  collisionMask: boolean[][]
+): boolean {
+  // Clamp to valid bounds
+  if (y < 0 || y >= collisionMask.length) return false;
+  if (x < 0 || x >= collisionMask[y]?.length) return false;
+  return !collisionMask[y][x];
+}
+ 
+function pathFinder(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  collisionMask: boolean[][]
+): { x: number; y: number }[] {
+  if (!collisionMask || collisionMask.length === 0) return [start];
+  if (!isTileWalkable(end.x, end.y, collisionMask)) return [start];
+
+  const openSet = new Map<string, Node>();
+  const closedSet = new Set<string>();
+  const startKey = `${start.x},${start.y}`;
+  const endKey = `${end.x},${end.y}`;
+
+  if (startKey === endKey) return [];
+  
+  const startNode: Node = {
+    x: start.x,
+    y: start.y,
+    g: 0,
+    h: heuristic(start, end),
+    parent: null,
+  };
+
+  openSet.set(startKey, startNode);
+
+  while (openSet.size > 0) {
+    let current = Array.from(openSet.values())[0];
+    let currentIdx = 0;
+
+    // Find node with lowest f score
+    Array.from(openSet.entries()).forEach(([_, node], idx) => {
+      if ((node.g + node.h) < (current.g + current.h)) {
+        current = node;
+        currentIdx = idx;
+      }
+    });
+
+    if (current.x === end.x && current.y === end.y) {
+      return reconstructPath(current);
+    }
+
+    const currentKey = `${current.x},${current.y}`;
+    openSet.delete(currentKey);
+    closedSet.add(currentKey);
+
+    // Check all 8 neighbors (or 4 if you prefer cardinal only)
+    const neighbors = [
+      { x: current.x + 1, y: current.y },
+      { x: current.x - 1, y: current.y },
+      { x: current.x, y: current.y + 1 },
+      { x: current.x, y: current.y - 1 },
+    ];
+
+    for (const neighbor of neighbors) {
+      const neighborKey = `${neighbor.x},${neighbor.y}`;
+      if (closedSet.has(neighborKey)) continue;
+      if (!isTileWalkable(neighbor.x, neighbor.y, collisionMask)) continue;
+
+      const g = current.g + 1;
+      const h = heuristic(neighbor, end);
+      const node = openSet.get(neighborKey);
+
+      if (!node || g < node.g) {
+        openSet.set(neighborKey, {
+          x: neighbor.x,
+          y: neighbor.y,
+          g,
+          h,
+          parent: current,
+        });
+      }
+    }
+  }
+
+  // No path found, return start position
+  return [start];
+}  // Placeholder for pathfinding logic (e.g., A* algorithm)
+
+interface Node {
+  x: number;
+  y: number;
+  g: number; // Cost from start
+  h: number; // Heuristic to goal
+  parent: Node | null;
+}
+
+function heuristic(from: { x: number; y: number }, to: { x: number; y: number }): number {
+  // Manhattan distance
+  return Math.abs(from.x - to.x) + Math.abs(from.y - to.y);
+}
+
+function reconstructPath(node: Node): { x: number; y: number }[] {
+  const path: { x: number; y: number }[] = [];
+  let current: Node | null = node;
+  while (current) {
+    path.unshift({ x: current.x, y: current.y });
+    current = current.parent;
+  }
+
+  return path;
 }
