@@ -31,8 +31,8 @@ const FLOATING_Y = 1.1;
 // the NE/SW diagonal and 4-persona groups on the four diagonals — never
 // on cardinal axes. This keeps nameplates from projecting onto the same
 // screen-Y line and overlapping when viewed from the default camera angle.
-// const FAN_RADIUS = 0.32;
-// const FAN_PHASE = Math.PI / 4;
+const FAN_RADIUS = 0.32;
+const FAN_PHASE = Math.PI / 4;
 
 export function usePersonaPositions(args: {
   expanded: ExpandedFrame[];
@@ -55,6 +55,16 @@ return useMemo(() => {
   const cur = args.expanded[args.currentStep];
   const next = args.expanded[Math.min(args.currentStep + 1, args.expanded.length - 1)];
   if (!cur) return {};
+
+
+  const tileGroups = new Map<string, string[]>();
+  for (const [id, delta] of Object.entries(cur.agents)) {
+    const key = `${delta.x ?? 0},${delta.y ?? 0}`;
+    const group = tileGroups.get(key);
+    if (group) group.push(id);
+    else tileGroups.set(key, [id]);
+  }
+  for (const group of tileGroups.values()) group.sort();
 
   const personaPaths = personaPathsRef.current;
   const personaPositions = personaPositionsRef.current;
@@ -119,11 +129,26 @@ return useMemo(() => {
     const lerpX = toX;
     const lerpY = toY;
 
+      // Per-tile fan-out: 1 persona → centered; 2+ → evenly spaced ring.
+      const tileKey = `${Math.floor(fromX)},${Math.floor(fromY)}`;
+      const group = tileGroups.get(tileKey)!;
+
+      let dx = 0;
+      let dz = 0;
+      if(group){
+      if (group.length > 1) {
+        const slotIdx = group.indexOf(id);
+        const angle = (slotIdx / group.length) * Math.PI * 2 + FAN_PHASE;
+        dx = Math.cos(angle) * FAN_RADIUS;
+        dz = Math.sin(angle) * FAN_RADIUS;
+      }
+    }
+    
     out[id] = {
       id,
       role,
-      worldX: lerpX + 0.5,
-      worldZ: lerpY + 0.5,
+      worldX: lerpX + 0.5 + dx,
+      worldZ: lerpY + 0.5 + dz,
       worldY: FLOATING_Y,
       pronunciatio: delta.pronunciatio ?? null,
       description: delta.description ?? null,
