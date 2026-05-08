@@ -45,7 +45,7 @@ export function usePlayback(opts: {
     lastTickRef.current = now;
 
     const { totalSteps, secPerStep } = optsRef.current;
-    const stepsAdvanced = (dtSec * speedRef.current) / secPerStep;
+    const stepsAdvanced = 4 * (dtSec * speedRef.current) / secPerStep;
 
     const prevFrac = fractionalStepRef.current;
     let nextFrac = prevFrac + stepsAdvanced;
