@@ -39,6 +39,7 @@ import { StringController } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { seededRandom } from 'three/src/math/MathUtils.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { get } from 'http';
+import { url } from 'inspector';
 // Extend react-three-fiber with the Text component
 extend({ Text });
 
@@ -255,7 +256,7 @@ function Walls({ layout }: { layout: MapLayout }) {
     type: THREE.Group;
     decoration?: WallDecorationType;
   }> = [];
-  let decorationSeed = 2; // Seed for wall decoration randomization, incremented for each wall segment
+  let decorationSeed = 4; // Seed for wall decoration randomization, incremented for each wall segment
   layout.walls.forEach((wall, i) => {
     if (wall.orientation === 'horizontal') {
       const z = wall.y1;
@@ -312,7 +313,10 @@ function addWallDecorations(seed: number, validDecorationRotation: string): Wall
                             {modelName: 'plant.fbx', yOffset: 0}, 
                             {modelName: 'tv.fbx', yOffset: 1, zOffset: -0.2}  ,
                             {modelName: 'table_magazines.fbx', yOffset: 0},
-                            {modelName: 'garbage.fbx'}]; // Example decorations
+                            {modelName: 'garbage.fbx'},
+                            {modelName: 'bookshelf.fbx', zOffset: -0.2}
+                          
+                        ]; // Example decorations
                
   const decorationProbability = 0.3; // 30% chance to add a decoration to a wall
   if (seededRandom(seed) < decorationProbability) {
@@ -549,17 +553,17 @@ function Decoration({
   url: string;
   position: [number, number, number];
   rotation?: [number, number, number];
-  scale?: number;
+  scale?: [number, number, number];
 }) {
   const model = useFBXModel(url);
   if (!model) return null;
-  const s = scale ?? FBX_SCALE;
+  const s = scale ?? [FBX_SCALE, FBX_SCALE, FBX_SCALE];
   return (
     <primitive
       object={model.clone(true)}
       position={position}
       rotation={rotation ?? [-Math.PI / 2, 0, 0]}
-      scale={[s, s, s]}
+      scale={s}
     />
   );
 }
@@ -577,7 +581,7 @@ function DecorationSetPiece({type}: {type: EquipmentPlacement}) {
           url={decoration.url}
           position={decoration.position}
           rotation={decoration.rotation}
-          scale={decoration.scale}
+          scale={decoration.scale ?? [FBX_SCALE, FBX_SCALE, FBX_SCALE]}
         />
       ))}
     </>
@@ -587,13 +591,20 @@ function DecorationSetPiece({type}: {type: EquipmentPlacement}) {
 
 
 
-function getDecorationForType(type: string): Array<{ url: string; position: [number, number, number]; rotation?: [number, number, number]; scale?: number }> | null {
+function getDecorationForType(type: string): Array<{ url: string; position: [number, number, number]; rotation?: [number, number, number]; scale?: [number,number,number] }> | null {
   if (type === 'receptionist_desk') {
     return [
-      { url: MODEL_URLS['receptionist_chair'], position: [0, 1, 0], rotation: [0, 0, 0], scale: MODEL_SCALE['receptionist_chair'] },
-      { url: `${base}models/hospital/garbage.fbx`, position: [-1, 1, 0], rotation: [0, 0, 0], scale: MODEL_SCALE['receptionist_chair'] },
+      { url: MODEL_URLS['receptionist_chair'], position: [0, 1, 0], rotation: [0, 0, 0] },
+      { url: `${base}models/hospital/garbage.fbx`, position: [-1, 1, 0], rotation: [0, 0, 0] },
 
     ];
+  }
+  else if (type === 'diagnostic_table') {
+    return [
+      { url: `${base}models/hospital/curtain_2.fbx`, position: [0, 0, 0], rotation: [0, 0, 0], scale: [0.001, 0.0013, 0.001]},
+      { url: `${base}models/hospital/wall_small_ward.fbx`, position: [0, 1.1, 0], rotation: [0, 0, Math.PI],  scale: [0.0011, 0.001, 0.001]}
+  
+      ];
   }
   return null;
 }
@@ -609,7 +620,7 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
   const { minX, minY, maxX, maxY } = waitingZone.bounds;
   const cx = (minX + maxX + 1) / 2;
   const cz = (minY + maxY + 1) / 2;
-  const s = FBX_SCALE;
+  const s = [FBX_SCALE, FBX_SCALE, FBX_SCALE];
 
   // Place items relative to zone bounds using common sense for a
   // hospital reception area:
@@ -633,43 +644,6 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
 
   return (
     <>
-      {/* === DESK AREA (z 8-9) === */}
-      {/* <Decoration
-        url={`${base}models/hospital/reception_desk.fbx`}
-        position={[cx, FLOOR_Y, minY + 2]}
-        scale={s * 0.7}
-      />
-      <Decoration
-        url={`${base}models/hospital/chair_reception.fbx`}
-        position={[cx, FLOOR_Y, minY + 1.2]}
-        scale={s}
-      />
-      <Decoration
-        url={`${base}models/hospital/pc_monitor.fbx`}
-        position={[cx - 0.8, FLOOR_Y + 0.4, minY + 2]}
-        scale={s}
-      />
-      <Decoration
-        url={`${base}models/hospital/phone.fbx`}
-        position={[cx + 0.8, FLOOR_Y + 0.4, minY + 2]}
-        scale={s}
-      /> */}
-
-      {/* === SEATING AREA (z 10-16) === */}
-      {/* 1 bench on the left, facing right */}
-      {/* <Decoration
-        url={`${base}models/hospital/waiting_chair.fbx`}
-        position={[cx - 1.5, FLOOR_Y, cz + 1]}
-        rotation={[-Math.PI / 2, 0, Math.PI / 2]}
-        scale={s}
-      /> */}
-      {/* 1 bench on the right, facing left */}
-      {/* <Decoration
-        url={`${base}models/hospital/waiting_chair.fbx`}
-        position={[cx + 1.5, FLOOR_Y, cz + 1]}
-        rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
-        scale={s}
-      /> */}
       
       {/* Magazine table in the aisle */}
       <Decoration
