@@ -34,6 +34,7 @@ export function validateReplay(input: unknown): ReplayFile {
   if (!Array.isArray(r.frames)) {
     throw new Error("frames must be an array");
   }
+
   return input as ReplayFile;
 }
 

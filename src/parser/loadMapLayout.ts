@@ -75,3 +75,39 @@ export async function loadMapLayout(opts: LoadMapOptions): Promise<MapLayout> {
 
   return parseTiledJSON(opts.mapId, tiled, specialBlocks, opts.onWarning);
 }
+
+export async function loadReplayLayout(opts: LoadMapOptions, map: Object): Promise<MapLayout> {
+  console.log("Loading replay layout with options:", opts);
+  const fetchImpl = opts.fetchImpl ?? fetch;
+
+  const [arenaRes, gameObjectRes, spawningRes] = await Promise.all([
+    fetchImpl(opts.arenaBlocksUrl),
+    fetchImpl(opts.gameObjectBlocksUrl),
+    fetchImpl(opts.spawningBlocksUrl)
+  ]);
+
+  for (const [name, res] of [
+    [opts.arenaBlocksUrl, arenaRes],
+    [opts.gameObjectBlocksUrl, gameObjectRes],
+    [opts.spawningBlocksUrl, spawningRes]
+  ] as const) {
+    if (!res.ok) {
+      throw new Error(`Failed to fetch "${name}": ${res.status} ${res.statusText}`);
+    }
+  }
+  if (typeof map !== "object" || map === null) {
+    throw new Error(`Invalid map layout in replay: expected object, got ${typeof map}`);
+  }
+
+  const tiled = map as TiledMap;
+  const arenaBlocks = await arenaRes.text();
+  const gameObjectBlocks = await gameObjectRes.text();
+  const spawningBlocks = await spawningRes.text();
+
+  const specialBlocks = parseSpecialBlocks({
+    arenaBlocks,
+    gameObjectBlocks,
+    spawningBlocks
+  });
+  return parseTiledJSON(opts.mapId, tiled, specialBlocks, opts.onWarning);
+}

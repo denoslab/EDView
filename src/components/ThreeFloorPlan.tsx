@@ -24,7 +24,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { Canvas, useThree, extend, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import * as THREE from 'three';
+import {Texture, Object3D, Group, SRGBColorSpace, Mesh, MeshPhongMaterial, DoubleSide, Camera, NoToneMapping} from 'three';
 import { TextureLoader } from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { Text } from 'troika-three-text';
@@ -176,7 +176,7 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
       offset = 2; // Slightly raise the floor at the edges of the waiting room to create a subtle border effect
   }
   let startZ: number | null = null;
-  const tiles: Array<{ x: number; z: number; key: string; offset: number; model: THREE.Object3D; sizeZ: number }> = [];
+  const tiles: Array<{ x: number; z: number; key: string; offset: number; model: Object3D; sizeZ: number }> = [];
   for (let x = minX; x < maxX; x++) {
     startZ = null;
     for (let z = minZ; z < maxZ; z++) {
@@ -248,7 +248,7 @@ function Walls({ layout }: { layout: MapLayout }) {
     x: number;
     z: number;
     rotY: number;
-    type: THREE.Group;
+    type: Group;
     decoration?: WallDecorationType;
   }> = [];
   let decorationSeed = 4; // Seed for wall decoration randomization, incremented for each wall segment
@@ -294,7 +294,7 @@ function Walls({ layout }: { layout: MapLayout }) {
   return (
     <>
       {wallPlacements.map(({ key, x, z, rotY,type, decoration }) => (
-        <WallSegment key={key} x={x} z={z} rotY={rotY} type={type} decoration={decoration}/>
+        <WallSegment key={key} id={key} x={x} z={z} rotY={rotY} type={type} decoration={decoration}/>
       ))}
     </>
   );
@@ -337,14 +337,14 @@ function addWallDecorations(seed: number, validDecorationRotation: string): Wall
   return {modelName: null}; // Return null if no decoration is added
 }
 
-const WallSegment = ({ key, x, z, rotY, type, decoration }: { key: string; x: number; z: number; rotY: number; type: THREE.Group; decoration?: WallDecorationType }) => {
+const WallSegment = ({ id, x, z, rotY, type, decoration }: { id: string; x: number; z: number; rotY: number; type: Group; decoration?: WallDecorationType }) => {
   return (
     <>
-        <group key={`wall-group-${key}`}
+        <group 
+          key={`${id}-child`}
           position={[x, FLOOR_Y, z]}
           rotation={[-Math.PI / 2, 0, rotY]}>
           <primitive
-            key={key}
             object={type.clone(true)}
             scale={[FBX_SCALE, FBX_SCALE, FBX_SCALE]}
             castShadow={false}
@@ -405,11 +405,11 @@ function GroundPlane({ layout }: { layout: MapLayout }) {
  * model URL is loaded only once regardless of how many placements
  * reference it.
  */
-const fbxCache = new Map<string, THREE.Group>();
-const textureCache: { atlas: THREE.Texture | null } = { atlas: null };
+const fbxCache = new Map<string, Group>();
+const textureCache: { atlas: Texture | null } = { atlas: null };
 
-function useFBXModel(modelUrl: string): THREE.Group | null {
-  const [model, setModel] = useState<THREE.Group | null>(
+function useFBXModel(modelUrl: string): Group | null {
+  const [model, setModel] = useState<Group | null>(
     () => fbxCache.get(modelUrl)?.clone(true) ?? null
   );
 
@@ -423,11 +423,11 @@ function useFBXModel(modelUrl: string): THREE.Group | null {
     const texLoader = new TextureLoader();
 
     // Load the shared texture atlas once.
-    const loadAtlas = (): Promise<THREE.Texture> => {
+    const loadAtlas = (): Promise<Texture> => {
       if (textureCache.atlas) return Promise.resolve(textureCache.atlas);
       return new Promise((resolve) => {
         texLoader.load(TEXTURE_ATLAS_URL, (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.colorSpace = SRGBColorSpace;
           textureCache.atlas = tex;
           resolve(tex);
         });
@@ -446,7 +446,7 @@ function useFBXModel(modelUrl: string): THREE.Group | null {
         (fbx) => {
           if (cancelled) return;
           fbx.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
+            if (child instanceof Mesh) {
               child.castShadow = true;
               child.receiveShadow = true;
               // Apply the shared texture atlas to meshes that lack a
@@ -459,9 +459,9 @@ function useFBXModel(modelUrl: string): THREE.Group | null {
                 ? child.material
                 : [child.material];
               mats.forEach((m) => {
-                const phong = m as THREE.MeshPhongMaterial;
+                const phong = m as MeshPhongMaterial;
                 if (!phong.map) phong.map = atlas;
-                phong.side = THREE.DoubleSide;
+                phong.side = DoubleSide;
                 phong.shininess = 20;
               });
             }
@@ -678,7 +678,7 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
 /* -------------------------------------------------------------------------- */
 
 function Lighting({ layout }: { layout: MapLayout }) {
-  const targetRef = useRef<THREE.Object3D>(null);
+  const targetRef = useRef<Object3D>(null);
   const cx = layout.widthInTiles / 2;
   const cz = layout.heightInTiles / 2;
   const mapDiag = Math.max(layout.widthInTiles, layout.heightInTiles);
@@ -717,7 +717,7 @@ function Lighting({ layout }: { layout: MapLayout }) {
  * Individual zone label that always faces the camera (billboarding).
  */
 function ZoneLabel({ zone }: { zone: ZoneRegion }) {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<Group>(null);
   const { camera } = useThree();
 
   useFrame(() => {
@@ -816,7 +816,7 @@ function Scene({
 function CameraExposer({
   cameraRef
 }: {
-  cameraRef: React.MutableRefObject<THREE.Camera | null>;
+  cameraRef: React.MutableRefObject<Camera | null>;
 }) {
   const { camera } = useThree();
   cameraRef.current = camera;
@@ -849,7 +849,7 @@ const NAV_BUTTON_STYLE: React.CSSProperties = {
 
 interface NavControlsProps {
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
-  cameraRef: React.MutableRefObject<THREE.Camera | null>;
+  cameraRef: React.MutableRefObject<Camera | null>;
   layout: MapLayout;
 }
 
@@ -979,7 +979,7 @@ function NavControls({ controlsRef, cameraRef, layout }: NavControlsProps) {
 export function ThreeFloorPlan({ layout, showZoneLabels, personas }: ThreeFloorPlanProps) {
   const mapDiag = Math.max(layout.widthInTiles, layout.heightInTiles);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
-  const cameraRef = useRef<THREE.Camera | null>(null);
+  const cameraRef = useRef<Camera | null>(null);
 
   return (
     <div
@@ -998,7 +998,7 @@ export function ThreeFloorPlan({ layout, showZoneLabels, personas }: ThreeFloorP
           near: 0.1,
           far: mapDiag * 10
         }}
-        gl={{ antialias: true, toneMapping: THREE.NoToneMapping }}
+        gl={{ antialias: true, toneMapping: NoToneMapping }}
       >
         <Suspense fallback={null}>
           <Scene layout={layout} controlsRef={controlsRef} showZoneLabels={showZoneLabels} personas={personas} />

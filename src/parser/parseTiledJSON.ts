@@ -875,6 +875,8 @@ export function parseTiledJSON(
     onWarning
   );
   const spawningLookup = buildSpawningLookup(specialBlocks.spawningBlocks, onWarning);
+  console.log(objectLayer)
+    console.log(equipmentLookup)
 
   return {
     mapId,

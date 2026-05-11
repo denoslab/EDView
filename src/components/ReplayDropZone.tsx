@@ -65,7 +65,7 @@ export function ReplayDropZone({
   }, [onLoaded, onError]);
 
   if (!hover) return null;
-
+  console.log("dropped")
   return (
     <div
       data-testid="replay-dropzone"

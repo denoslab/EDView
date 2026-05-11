@@ -19,7 +19,7 @@ import { usePlayback } from '@/replay/usePlayback';
 import type { ReplayFile } from '@/replay/types';
 import { PlaybackBar } from '@/components/PlaybackBar';
 import { ReplayDropZone } from '@/components/ReplayDropZone';
-import { loadMapLayout } from '@/parser/loadMapLayout';
+import { loadMapLayout, loadReplayLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
 
@@ -62,7 +62,7 @@ export function MapViewer() {
     return () => {
       cancelled = true;
     };
-  }, [selected.id]);
+  }, [selected]);
 
   // Reflect the current selection in the URL so it survives reloads and
   // makes the viewer trivially shareable.
@@ -85,9 +85,25 @@ export function MapViewer() {
     const url = params.get('replay');
     if (!url) return;
     loadReplayFromUrl(url)
-      .then(setReplay)
-      .catch((e) => setReplayError(String(e)));
-  }, []);
+        .then((replay) => {loadReplay(replay)})
+  });
+
+  const loadReplay = (currentReplay: ReplayFile) => {
+    setReplay(currentReplay)
+    if(currentReplay.mapLayout){
+      loadReplayLayout(selected.load, currentReplay.mapLayout).then((layout) => {      
+        setState({ kind: 'ready', layout });
+      });
+    }
+    else{
+      setSelected(findMap(currentReplay.mapId))
+    }
+  };
+
+  const findMap = (id: String): MapCatalogueEntry => {
+    const findMap = MAP_CATALOGUE.find(map => map.id === id);
+    return findMap ? findMap : selected;
+  }
 
   const expanded = useMemo(
     () => (replay ? expandFrames(replay.frames) : []),
@@ -115,7 +131,7 @@ export function MapViewer() {
   return (
     <>
     <ReplayDropZone
-      onLoaded={setReplay}
+      onLoaded={loadReplay}
       onError={(e) => setReplayError(String(e))}
     />
 
@@ -144,9 +160,9 @@ export function MapViewer() {
         <button
           data-testid="load-demo-replay"
           onClick={() =>
-            loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
-              .then(setReplay)
-              .catch((e) => setReplayError(String(e)))
+            loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo2.json`)
+            .then((replay) => { loadReplay(replay)})
+
           }
           style={{
             position: "absolute",

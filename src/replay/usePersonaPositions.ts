@@ -156,7 +156,7 @@ return useMemo(() => {
     };
   }
   return out;
-}, [args.expanded, args.currentStep, args.interpAlpha, personaIndex]);}
+}, [args.expanded, args.currentStep, args.collisionMask, personaIndex]);}
 
 
 function isTileWalkable(

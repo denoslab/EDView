@@ -1,3 +1,4 @@
+
 export type PersonaRole =
   | "Patient"
   | "Doctor"
@@ -47,7 +48,9 @@ export interface ReplayMetadata {
 export interface ReplayFile {
   schemaVersion: 1;
   mapId: string;
+  mapLayout: Object;
   metadata: ReplayMetadata;
   personas: ReplayPersona[];
   frames: ReplayFrame[];
+
 }
