@@ -647,12 +647,12 @@ function ReceptionDecorations({ layout }: { layout: MapLayout }) {
       />
 
       {/* === PERIPHERY === */}
-      <Decoration
+      {/* <Decoration
         url={`${base}models/hospital/tv.fbx`}
         position={[maxX + 0.8, FLOOR_Y + 1.0, cz + 1]}
         rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
         scale={[FBX_SCALE, FBX_SCALE * 1.2, FBX_SCALE]}
-      />
+      /> */}
       <Decoration
         url={`${base}models/hospital/bookshelf.fbx`}
         position={[minX + 0.2, FLOOR_Y, cz]}
