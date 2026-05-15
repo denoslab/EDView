@@ -25,6 +25,12 @@ with:
 - OrbitControls: drag to orbit, scroll to zoom, right-drag to pan
 - Sidebar with map catalogue, display toggles, and parsed-count stats
 
+## Running a Replay
+
+**Example:** Click on the replay button top right to see an example. 
+
+**Replay File:** If you have a replay file generated from EDSim, drag and drop the file and it will automatically load the replay.
+
 ## Architecture
 
 ```
