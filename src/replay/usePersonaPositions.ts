@@ -39,7 +39,28 @@ export function usePersonaPositions(args: {
   personas: ReplayPersona[];
   currentStep: number;
   interpAlpha: number;
-  collisionMask: boolean[][];
+  collisionMask: boolean[][]
+  playbackType: string;
+}): Record<string, PersonaState> {
+  if (args.playbackType === "live") {
+    return livePositions(args);
+  }
+  else{
+        console.log(args)
+
+    return replayPositions(args);
+  }
+
+
+}
+
+
+function replayPositions(args: {
+  expanded: ExpandedFrame[];
+  personas: ReplayPersona[];
+  currentStep: number;
+  interpAlpha: number;
+  collisionMask: boolean[][]
 }): Record<string, PersonaState> {
   const personaIndex = useMemo(() => {
     const map = new Map<string, ReplayPersona>();
@@ -158,6 +179,58 @@ return useMemo(() => {
   return out;
 }, [args.expanded, args.currentStep, args.collisionMask, personaIndex]);}
 
+
+
+function livePositions(args: {
+  expanded: ExpandedFrame[];
+  personas: ReplayPersona[];
+  currentStep: number;
+  interpAlpha: number;
+  collisionMask: boolean[][]
+}): Record<string, PersonaState> {
+
+  const personaIndex = useMemo(() => {
+    const map = new Map<string, ReplayPersona>();
+    for (const p of args.personas) map.set(p.id, p);
+    return map;
+  }, [args.personas]);
+  useRef(new Map<string, { x: number; y: number }[]>());
+  useRef(new Map<string, { x: number; y: number }>());
+  useRef(new Map<string, number>());
+
+  return useMemo(() => {
+    const cur = args.expanded[args.currentStep];
+    if (!cur) return {};
+
+    const out: Record<string, PersonaState> = {};
+
+    // Only add personas that exist in current frame
+    for (const [id, delta] of Object.entries(cur.agents)) {
+      var backupRole: PersonaRole = "Unknown";
+      if (!personaIndex.get(id)) {
+        const splitId = id.split(' ');
+        backupRole = splitId.slice(0,-1).join("") as PersonaRole;
+        //const role: PersonaRole = meta?.role ?? "Unknown";
+        args.personas.push({id, role: backupRole});
+      };
+      const meta = personaIndex.get(id);
+
+      const role: PersonaRole = meta?.role ? meta?.role : backupRole;
+
+      out[id] = {
+        id,
+        role,
+        worldX: (delta.x ?? 0) + 0.5,
+        worldZ: (delta.y ?? 0) + 0.5,
+        worldY: FLOATING_Y,
+        pronunciatio: delta.pronunciatio ?? null,
+        description: delta.description ?? null,
+      };
+    }
+
+    return out;
+  }, [args.expanded, args.currentStep, personaIndex]);
+}
 
 function isTileWalkable(
   x: number,

@@ -9,24 +9,25 @@
  *
  * @packageDocumentation
  */
-
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ThreeFloorPlan } from '@/components/ThreeFloorPlan';
-import { expandFrames } from '@/replay/expandFrames';
+import { ExpandedFrame, expandFrames, expandInitialState, expandLiveFrame } from '@/replay/expandFrames';
 import { loadReplayFromUrl } from '@/replay/loadReplay';
 import { usePersonaPositions } from '@/replay/usePersonaPositions';
 import { usePlayback } from '@/replay/usePlayback';
-import type { ReplayFile } from '@/replay/types';
+import type { ReplayFile, ReplayAgentDelta, ReplayFrame } from '@/replay/types';
 import { PlaybackBar } from '@/components/PlaybackBar';
 import { ReplayDropZone } from '@/components/ReplayDropZone';
 import { loadMapLayout, loadReplayLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
-
+import {convertToDelta, startLiveMap} from '@/liveMap/loadInitialState';
+import { initialState } from './liveMap/types';
+import {useLiveMovement} from '@/liveMap/pollingSteps';
 type LoadingState =
   | { kind: 'idle' }
   | { kind: 'loading'; mapId: string }
-  | { kind: 'ready'; layout: MapLayout }
+  | { kind: 'ready'; layout: MapLayout; playbackType: string }
   | { kind: 'error'; mapId: string; error: string };
 
 /**
@@ -52,7 +53,7 @@ export function MapViewer() {
     loadMapLayout(selected.load)
       .then((layout) => {
         if (cancelled) return;
-        setState({ kind: 'ready', layout });
+        setState({ kind: 'ready', layout, playbackType: "view" });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -92,11 +93,13 @@ export function MapViewer() {
     setReplay(currentReplay)
     if(currentReplay.mapLayout){
       loadReplayLayout(selected.load, currentReplay.mapLayout).then((layout) => {      
-        setState({ kind: 'ready', layout });
+        setState({ kind: 'ready', layout, playbackType: "replay" });
       });
     }
     else{
       setSelected(findMap(currentReplay.mapId))
+      //setState({ kind: 'ready', state, playbackType: "replay" });
+
     }
   };
 
@@ -113,13 +116,9 @@ export function MapViewer() {
     totalSteps: replay?.metadata.totalSteps ?? 1,
     secPerStep: replay?.metadata.secPerStep ?? 30,
   });
-  const personas = usePersonaPositions({
-    expanded,
-    personas: replay?.personas ?? [],
-    currentStep: playback.currentStep,
-    interpAlpha: playback.interpAlpha,
-    collisionMask: state.kind === 'ready' ? state.layout.collisionMask : [],
-  });
+
+
+
 
   // Warn if the loaded replay targets a different map than the one displayed.
   const mapMismatch =
@@ -127,6 +126,38 @@ export function MapViewer() {
     state.kind === 'ready' &&
     state.layout.mapId !== undefined &&
     state.layout.mapId !== replay.mapId;
+
+  // ── Live Map ──────────────────────────────────────────────────────────
+
+  const [step, setStep] = useState(0);
+  const [pollingForState, setPollingForState] = useState(false);
+
+  const liveState = useLiveMovement(pollingForState, step, setStep);
+
+
+  const liveFrame = useMemo(
+    () => (liveState ? expandLiveFrame(liveState, step) : []),
+    [liveState,step],
+  );
+
+  const currentExpanded = state.kind === "ready" 
+  ? (state.playbackType === "replay" ? expanded : liveFrame) 
+  : [];
+
+
+
+  // 1. Memoize the configuration object so it only changes when values actually change
+  const personaOptions = useMemo(() => ({
+    expanded: currentExpanded,
+    personas: replay?.personas ?? [],
+    currentStep: playback.currentStep,
+    interpAlpha: playback.interpAlpha,
+    collisionMask: state.kind === 'ready' ? state.layout.collisionMask : [],
+    playbackType: state.kind === 'ready' ? state.playbackType : ""
+  }), [currentExpanded, step, replay, state, playback.currentStep]);
+
+  // 2. Pass the memoized object to your hook
+  const personas = usePersonaPositions(personaOptions);
 
   return (
     <>
@@ -160,7 +191,7 @@ export function MapViewer() {
         <button
           data-testid="load-demo-replay"
           onClick={() =>
-            loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo2.json`)
+            loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
             .then((replay) => { loadReplay(replay)})
 
           }
@@ -172,6 +203,24 @@ export function MapViewer() {
           Replay
         </button>
 
+        <button
+          data-testid="load-live-map"
+          onClick={() =>
+            startLiveMap().then((initial) => {
+              loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
+                setState({ kind: 'ready', layout, playbackType: "live" });
+                setPollingForState(!pollingForState);
+              })
+
+            })
+          }
+          style={{
+            position: "absolute",
+            right: 100,
+          }}
+        >
+          Live Map
+        </button>
       </header>
       <div className="map-viewer-body">
         <button
