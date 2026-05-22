@@ -46,8 +46,7 @@ export function MapViewer() {
   // sidebar is always visible and this flag is a no-op.
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Load the selected map.
-  useEffect(() => {
+  function loadMap(){
     let cancelled = false;
     setState({ kind: 'loading', mapId: selected.id });
     loadMapLayout(selected.load)
@@ -63,7 +62,10 @@ export function MapViewer() {
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }
+
+  // Load the selected map.
+  useEffect(loadMap, [selected]);
 
   // Reflect the current selection in the URL so it survives reloads and
   // makes the viewer trivially shareable.
@@ -159,6 +161,11 @@ export function MapViewer() {
   // 2. Pass the memoized object to your hook
   const personas = usePersonaPositions(personaOptions);
 
+  function resetPage() {
+    setPollingForState(false);
+    loadMap();
+  }
+
   return (
     <>
     <ReplayDropZone
@@ -205,14 +212,29 @@ export function MapViewer() {
 
         <button
           data-testid="load-live-map"
-          onClick={() =>
-            startLiveMap().then((initial) => {
-              loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
-                setState({ kind: 'ready', layout, playbackType: "live" });
-                setPollingForState(!pollingForState);
-              })
+          onClick={() =>{
+            if(!pollingForState){
+              setPollingForState(!pollingForState)
 
-            })
+              startLiveMap().then((initial) => {
+                loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
+                  setState({ kind: 'ready', layout, playbackType: "live" });
+                })
+              })
+              .catch((error) => {
+                  // Handle the error here
+                  console.error("Failed to load live map:", error);
+                  setState({ kind: 'error', mapId: "live-map", error: "Simulation Not Running" });
+                })
+            }
+            else{
+              loadMap();
+              setPollingForState(!pollingForState)
+              console.log("base")
+            }
+          }
+
+          
           }
           style={{
             position: "absolute",
@@ -221,6 +243,19 @@ export function MapViewer() {
         >
           Live Map
         </button>
+
+        {state.kind === "error" && (
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fee2e2',
+          color: '#991b1b',
+          border: '1px solid #fca5a5',
+          borderRadius: '6px',
+
+        }}>
+          <strong>Error:</strong> There is no simulation running
+        </div>
+      )}
       </header>
       <div className="map-viewer-body">
         <button
@@ -295,6 +330,17 @@ export function MapViewer() {
             <div className="status error" data-testid="error-state">
               <strong>Failed to load {state.mapId}</strong>
               <pre>{state.error}</pre>
+              <button
+              style={{padding: '12px',
+              backgroundColor: '#c40d0d',
+              color: '#ffffff',
+              border: '1px solid #530000',
+              borderRadius: '6px'
+              }}
+              onClick={() => {
+                resetPage();
+              }}>
+            Reload Page</button>
             </div>
           ) : null}
           {state.kind === 'ready' ? (

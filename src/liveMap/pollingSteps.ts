@@ -15,11 +15,10 @@ export async function fetchLivePositions(step: number): Promise<ReplayFrame> {
 //const [pollingForState, setPollingForState] = useState(true);
 
 export function useLiveMovement (pollingForState: boolean, step: number, setStep: React.Dispatch<React.SetStateAction<number>>) {
-     const lastSeenSimTime = useRef<string | number | null>(null);
     const query = useQuery({
         queryKey: ['liveData'],
         queryFn: () => fetchLivePositions(step),
-        refetchInterval: pollingForState ? 3000 : false, // Stops polling when isLive is false
+        refetchInterval: pollingForState ? 1000 : false, // Stops polling when isLive is false
         enabled: pollingForState
         //placeholderData: (keepPreviousData) => keepPreviousData, // Keeps data reference stable mid-fetch
     });
