@@ -7,12 +7,13 @@
  *
  * @packageDocumentation
  */
-
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import LiveDashboard from './LiveDashboard';
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Could not find #root element to mount the viewer into');
@@ -23,10 +24,20 @@ const MapViewer = lazy(() =>
 const queryClient = new QueryClient();
 createRoot(rootElement).render(
   <Suspense fallback={<div>Loading 3D Scene...</div>}>  
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-      <MapViewer />
-      </QueryClientProvider>
-    </StrictMode>
+
+  < BrowserRouter>
+      <StrictMode>
+        <QueryClientProvider client={queryClient}>
+
+
+          {/* Page Switcher */}
+          <Routes>
+            <Route path="/" element={<MapViewer />} />
+            <Route path="/live-dashboard" element={<LiveDashboard />} />
+          </Routes>
+        </QueryClientProvider>
+      </StrictMode>
+
+    </BrowserRouter>
   </Suspense>
 );

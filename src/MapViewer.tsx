@@ -220,6 +220,7 @@ export function MapViewer() {
               startLiveMap().then((initial) => {
                 loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
                   setState({ kind: 'ready', layout, playbackType: "live" });
+                  setStep(initial.step - 1);
                 })
               })
               .catch((error) => {
