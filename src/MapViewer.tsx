@@ -9,13 +9,13 @@
  *
  * @packageDocumentation
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {useEffect, useMemo, useState } from 'react';
 import { ThreeFloorPlan } from '@/components/ThreeFloorPlan';
-import { ExpandedFrame, expandFrames, expandInitialState, expandLiveFrame } from '@/replay/expandFrames';
+import {expandFrames, expandLiveFrame } from '@/replay/expandFrames';
 import { loadReplayFromUrl } from '@/replay/loadReplay';
 import { usePersonaPositions } from '@/replay/usePersonaPositions';
 import { usePlayback } from '@/replay/usePlayback';
-import type { ReplayFile, ReplayAgentDelta, ReplayFrame } from '@/replay/types';
+import type { ReplayFile} from '@/replay/types';
 import { PlaybackBar } from '@/components/PlaybackBar';
 import { ReplayDropZone } from '@/components/ReplayDropZone';
 import { LiveInfoBar } from '@/components/LiveInfoBar';
@@ -23,8 +23,7 @@ import { LiveInfoBar } from '@/components/LiveInfoBar';
 import { loadMapLayout, loadReplayLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
-import {convertToDelta, startLiveMap} from '@/liveMap/loadInitialState';
-import { initialState } from './liveMap/types';
+import {startLiveMap} from '@/liveMap/loadInitialState';
 import {useLiveMovement} from '@/liveMap/pollingSteps';
 type LoadingState =
   | { kind: 'idle' }

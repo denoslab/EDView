@@ -1,5 +1,4 @@
-import { i } from "node_modules/vite/dist/node/chunks/moduleRunnerTransport";
-import type { initialState, PersonaRole } from "./types";
+import type { initialState } from "./types";
 import { ReplayAgentDelta, ReplayFrame } from "@/replay/types";
 export interface ExpandedFrame {
   step: number;
@@ -8,13 +7,6 @@ export interface ExpandedFrame {
 }
 
 
-const ROLES: ReadonlySet<PersonaRole> = new Set([
-  "Patient",
-  "Doctor",
-  "TriageNurse",
-  "BedsideNurse",
-  "Unknown",
-]);
 
 export function validateInitial(input: unknown): initialState {
   if (typeof input !== "object" || input === null) {
