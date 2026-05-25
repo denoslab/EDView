@@ -18,6 +18,8 @@ import { usePlayback } from '@/replay/usePlayback';
 import type { ReplayFile, ReplayAgentDelta, ReplayFrame } from '@/replay/types';
 import { PlaybackBar } from '@/components/PlaybackBar';
 import { ReplayDropZone } from '@/components/ReplayDropZone';
+import { LiveInfoBar } from '@/components/LiveInfoBar';
+
 import { loadMapLayout, loadReplayLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
@@ -132,9 +134,9 @@ export function MapViewer() {
   // ── Live Map ──────────────────────────────────────────────────────────
 
   const [step, setStep] = useState(0);
-  const [pollingForState, setPollingForState] = useState(false);
+  const [liveMapActive, setLiveMapActive] = useState(false);
 
-  const liveState = useLiveMovement(pollingForState, step, setStep);
+  const liveState = useLiveMovement(liveMapActive, step, setStep);
 
 
   const liveFrame = useMemo(
@@ -162,7 +164,7 @@ export function MapViewer() {
   const personas = usePersonaPositions(personaOptions);
 
   function resetPage() {
-    setPollingForState(false);
+    setLiveMapActive(false);
     loadMap();
   }
 
@@ -213,8 +215,8 @@ export function MapViewer() {
         <button
           data-testid="load-live-map"
           onClick={() =>{
-            if(!pollingForState){
-              setPollingForState(!pollingForState)
+            if(!liveMapActive){
+              setLiveMapActive(!liveMapActive)
 
               startLiveMap().then((initial) => {
                 loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
@@ -229,7 +231,7 @@ export function MapViewer() {
             }
             else{
               loadMap();
-              setPollingForState(!pollingForState)
+              setLiveMapActive(!liveMapActive)
               console.log("base")
             }
           }
@@ -241,7 +243,7 @@ export function MapViewer() {
             right: 100,
           }}
         >
-          Live Map
+          {liveMapActive ? "Back to View Mode" : "Live Map"}
         </button>
 
         {state.kind === "error" && (
@@ -358,6 +360,12 @@ export function MapViewer() {
       <PlaybackBar
         ctrl={playback}
         simTime={expanded[playback.currentStep]?.simTime}
+      />
+    )}
+    {liveMapActive && (
+      <LiveInfoBar
+        meta={liveState?.meta}
+        step={step}
       />
     )}
     {replayError && (

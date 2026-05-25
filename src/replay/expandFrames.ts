@@ -1,5 +1,5 @@
 import type { ReplayFrame, ReplayAgentDelta } from "./types";
-import type { initialState } from "@/liveMap/types";
+import type { initialState, MovementFile } from "@/liveMap/types";
 
 export interface ExpandedFrame {
   step: number;
@@ -38,14 +38,14 @@ export function expandInitialState (state: initialState): ExpandedFrame[]{
           }];
 }
 
-export function expandLiveFrame (frame?: ReplayFrame, step?: number): ExpandedFrame[]{
+export function expandLiveFrame (frame?: MovementFile, step?: number): ExpandedFrame[]{
   if (!frame || !step){
     return [];
   }
   
   const personas = frame.agents;
   const out: ExpandedFrame = {step: step,
-          simTime: frame.simTime,
+          simTime: frame.meta.curr_time,
           agents:personas
           } 
           

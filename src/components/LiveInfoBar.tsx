@@ -1,14 +1,14 @@
-import type { PlaybackController, PlaybackSpeed } from "@/replay/usePlayback";
+import type { MetaMovementFile } from "@/liveMap/types";
 
-const SPEEDS: PlaybackSpeed[] = [1, 4, 16, 64];
 
-export function PlaybackBar({ ctrl, simTime }: { ctrl: PlaybackController; simTime?: string }) {
+export function LiveInfoBar({ meta, step }: { meta?: MetaMovementFile, step?: number }) {
   return (
     <div
-    className="bottomBar"
-      data-testid="playback-bar"
+    className='bottomBar'
+      data-testid="bottom-bar"
+
     >
-      <button
+      {/* <button
         data-testid={ctrl.isPlaying ? "pause" : "play"}
         onClick={() => (ctrl.isPlaying ? ctrl.pause() : ctrl.play())}
         style={{ minWidth: 64 }}
@@ -39,8 +39,13 @@ export function PlaybackBar({ ctrl, simTime }: { ctrl: PlaybackController; simTi
 
       <span data-testid="step-counter">
         {ctrl.currentStep} / {ctrl.totalSteps - 1}
-      </span>
-      {simTime && <span data-testid="sim-time">{simTime}</span>}
+      </span> */}
+      Simulation Time:
+      <span data-testid="sim-time">{meta?.curr_time ? meta.curr_time : 'null'}</span> | 
+      Step:
+      <span data-testid="step">{step ? step : 'null'}</span> |
+      Percentage Completed:
+      <span data-testid="Percent">{meta?.total_steps && step ? `${((step / meta.total_steps)*100).toFixed(2)}%` : 'null'}</span>
     </div>
   );
 }

@@ -1,10 +1,5 @@
-export interface ReplayAgentDelta {
-  x?: number;
-  y?: number;
-  pronunciatio?: string | null;
-  description?: string | null;
-  chat?: unknown | null;
-}
+import {ReplayAgentDelta} from '@/replay/types'
+
 
 export type PersonaRole =
   | "Patient"
@@ -26,23 +21,13 @@ export interface initialState {
 }
   
 export interface MovementFile {
-    persona: Record<string, PersonaDetailsMovementFile>;
+    agents: Record<string, ReplayAgentDelta>;
     meta: MetaMovementFile;
+    step: number;
 }
 
-export interface PersonaDetailsMovementFile {
-    movement: Array<number>;
-    pronunciatio?: string;
-    description?: string;
-    chat?: string;
-}
-
-export interface PersonaMovementFile {
-    id: string;
-    PersonaDetailsMovementFile: PersonaDetailsMovementFile;
-}
 
 export interface MetaMovementFile {
     curr_time: string;
-
+    total_steps: number;
 }

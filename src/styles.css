@@ -360,3 +360,19 @@ button {
 
 
 }
+
+.bottomBar {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  display: flex;
+  gap: 12px;
+  align-items: center; /* Fixed camelCase */
+  border-radius: 8px;  /* Fixed camelCase */
+  font-family: monospace; /* Fixed camelCase */
+  z-index: 30;         /* Fixed camelCase */
+}
