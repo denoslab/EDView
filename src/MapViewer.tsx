@@ -9,6 +9,8 @@
  *
  * @packageDocumentation
  */
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {useEffect, useMemo, useState } from 'react';
 import { ThreeFloorPlan } from '@/components/ThreeFloorPlan';
 import {expandFrames, expandLiveFrame } from '@/replay/expandFrames';
@@ -19,6 +21,7 @@ import type { ReplayFile} from '@/replay/types';
 import { PlaybackBar } from '@/components/PlaybackBar';
 import { ReplayDropZone } from '@/components/ReplayDropZone';
 import { LiveInfoBar } from '@/components/LiveInfoBar';
+import LiveDashboard from '@/components/LiveDashboard';
 
 import { loadMapLayout, loadReplayLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
@@ -93,17 +96,14 @@ export function MapViewer() {
   });
 
   const loadReplay = (currentReplay: ReplayFile) => {
+    
     setReplay(currentReplay)
     if(currentReplay.mapLayout){
       loadReplayLayout(selected.load, currentReplay.mapLayout).then((layout) => {      
         setState({ kind: 'ready', layout, playbackType: "replay" });
       });
     }
-    else{
-      setSelected(findMap(currentReplay.mapId))
-      //setState({ kind: 'ready', state, playbackType: "replay" });
 
-    }
   };
 
   const findMap = (id: String): MapCatalogueEntry => {
@@ -134,10 +134,10 @@ export function MapViewer() {
 
   const [step, setStep] = useState(0);
   const [liveMapActive, setLiveMapActive] = useState(false);
+  const [liveDashboardOpen, setLiveDashboard] = useState(false);
+  const queryClientDashBoard = new QueryClient();
 
   const liveState = useLiveMovement(liveMapActive, step, setStep);
-
-
   const liveFrame = useMemo(
     () => (liveState ? expandLiveFrame(liveState, step) : []),
     [liveState,step],
@@ -164,6 +164,8 @@ export function MapViewer() {
 
   function resetPage() {
     setLiveMapActive(false);
+    setReplay(null);
+    setLiveDashboard(false);
     loadMap();
   }
 
@@ -198,10 +200,16 @@ export function MapViewer() {
 
         <button
           data-testid="load-demo-replay"
-          onClick={() =>
+          onClick={() =>{
+            if(!replay){
+            resetPage();
             loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
             .then((replay) => { loadReplay(replay)})
-
+            }
+            else{
+              resetPage();
+            }
+          }
           }
           style={{
             position: "absolute",
@@ -232,6 +240,7 @@ export function MapViewer() {
             else{
               loadMap();
               setLiveMapActive(!liveMapActive)
+              setLiveDashboard(false);
               console.log("base")
             }
           }
@@ -246,6 +255,22 @@ export function MapViewer() {
           {liveMapActive ? "Back to View Mode" : "Live Map"}
         </button>
 
+        {liveMapActive && (<button
+          data-testid="load-live-map"
+          onClick={() =>{
+            setLiveDashboard(!liveDashboardOpen)
+            console.log(liveDashboardOpen)
+          }
+        }
+          style={{
+            position: "absolute",
+            right: 266,
+            
+          }}
+        >
+          {liveDashboardOpen ? "Close Dashboard" : "Open Dashboard" }
+        </button>
+        )}
         {state.kind === "error" && (
         <div style={{
           padding: '12px',
@@ -354,9 +379,20 @@ export function MapViewer() {
             />
           ) : null}
         </main>
+
       </div>
     </div>
-    {replay && (
+ <div className='liveDashboard' style={{
+
+    }}>
+      <QueryClientProvider client={queryClientDashBoard}>
+      <LiveDashboard liveDashboardOpen={liveDashboardOpen}
+      
+      />
+    </QueryClientProvider>
+    </div>
+
+    {replay !== null && (
       <PlaybackBar
         ctrl={playback}
         simTime={expanded[playback.currentStep]?.simTime}

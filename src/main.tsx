@@ -13,7 +13,6 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import LiveDashboard from './LiveDashboard';
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Could not find #root element to mount the viewer into');
@@ -33,7 +32,6 @@ createRoot(rootElement).render(
           {/* Page Switcher */}
           <Routes>
             <Route path="/" element={<MapViewer />} />
-            <Route path="/live-dashboard" element={<LiveDashboard />} />
           </Routes>
         </QueryClientProvider>
       </StrictMode>
