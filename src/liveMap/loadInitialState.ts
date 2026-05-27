@@ -1,10 +1,5 @@
-import type { initialState } from "./types";
-import { ReplayAgentDelta, ReplayFrame } from "@/replay/types";
-export interface ExpandedFrame {
-  step: number;
-  simTime: string;
-  agents: Record<string, ReplayAgentDelta>;
-}
+import { BlobOptions } from "buffer";
+import type { initialState, liveMapMetaData } from "./types";
 
 
 
@@ -15,17 +10,24 @@ export function validateInitial(input: unknown): initialState {
   const r = input as Record<string, unknown>;
 
   if (typeof r.metadata !== "object" || r.metadata === null) {
-    throw new Error("metadata missing");
+    throw new Error("metadata missing or not an object");
   }
-  if (typeof r.state !== "object" ) {
-    throw new Error("state is missing");
+  else{
+    const metadata = r.metadata as liveMapMetaData
+    if(!metadata.time || !metadata.heightInTiles || !metadata.widthInTiles){
+      throw new Error("metadata missing attributes");
+
+    } 
+  }
+  
+  if (!Number.isInteger(r.step)) {
+    throw new Error("Step must be a integer");
   }
 
-  if (typeof r.mapLayout !== "object" ) {
-    throw new Error("mapLayout must be an object");
+  if (typeof r.mapLayout !== "object" || !r.mapLayout ) {
+    throw new Error("mapLayout must be an object and not empty");
   }
-  console.log(input)
-  
+
   return input as initialState;
 }
 
@@ -36,18 +38,18 @@ export async function startLiveMap(): Promise<initialState> {
   return validateInitial(json);
 }
 
-export function convertToDelta (state: initialState): ReplayFrame{
-  const personas = state.state;
-
-  const carry: Record<string, ReplayAgentDelta> = {}
-  Object.entries(personas).forEach(([key, value]) => {
-  console.log(`${key}: ${value}`);
-      carry[key] = {x: value.x, y:value.y}
+export async function isSimulationUp(): Promise<boolean>{
+  try{
+  const res = await fetch("http://localhost:5000/initial_state/", {
+    signal: AbortSignal.timeout(500) 
   });
-  return {step: 0,
-          simTime: state.metadata.time,
-          agents:carry
-          };
+  return res.ok;
+  } catch (error: any){
+    // If it errors, means simulation isn't up to respond
+    return false;
+
+  }
+  
 }
 
 

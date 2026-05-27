@@ -16,7 +16,6 @@ export interface liveMapMetaData {
   
 export interface initialState {
     metadata: liveMapMetaData;
-    state: Object;
     mapLayout: Object;
     step: number
 }
@@ -24,7 +23,6 @@ export interface initialState {
 export interface MovementFile {
     agents: Record<string, ReplayAgentDelta>;
     meta: MetaMovementFile;
-    step: number;
 }
 
 

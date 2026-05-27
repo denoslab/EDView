@@ -357,9 +357,10 @@ button {
   font-size: 13px;
   z-index: 20;
   font-family: monospace;
-
+  
 
 }
+
 
 .bottomBar {
   position: fixed;
