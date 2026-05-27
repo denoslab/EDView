@@ -246,7 +246,8 @@ export function MapViewer() {
           data-testid="load-live-map"
           onClick={(e) =>{
             e.stopPropagation();
-            setLiveDashboard(!liveDashboardOpen)
+            setLiveDashboard(!liveDashboardOpen);
+            setIsSidebarOpen(false);
           }
         }
           style={{
