@@ -319,7 +319,7 @@ export function MapViewer() {
             />
             Show zone labels
           </label>
-            <h2></h2>
+            <h2>Control Options</h2>
                   <button
                     style={{color: "black", backgroundColor: replay ? "#2d6cdf" : "#d5deee"}}
                     type="button"
@@ -343,11 +343,13 @@ export function MapViewer() {
 
                   <h2></h2>
                   <button
-                    style={{color: "black", backgroundColor: liveMapActive ? "#2d6cdf" : "#d5deee"}}
+                    style={{color: "black", backgroundColor: simulationRunning ? (liveMapActive ? "#2d6cdf" : "#d5deee") : "#eed5d5"}}
                     type="button"
                     className={`map-list-item active`}
+                    disabled={!simulationRunning}
                     onClick={() =>{
                       if(!liveMapActive){
+                        setIsSidebarOpen(false);
                         setLiveMapActive(!liveMapActive)
 
                         startLiveMap().then((initial) => {
@@ -371,13 +373,14 @@ export function MapViewer() {
                     }
                     }
                   >
-                    <span className="map-name">{liveMapActive ? "Close Live Map" : "Open Live Map"}
+                    <span className="map-name">{simulationRunning ? (liveMapActive ? "Close Live Map" : "Open Live Map") : "Simulation not running"}
 
                     </span>
                     <span className="map-description" 
                     style={{color: `${liveMapActive ? 'white' : 'black'}`}}>
                       {simulationRunning ? "Shows current state of simulator" : "Run EDSim to see a live map of the simulaiton"}</span>
                   </button>
+          
           {state.kind === 'ready' ? (
             <ParserStats layout={state.layout} />
           ) : null}
