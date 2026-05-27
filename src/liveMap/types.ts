@@ -1,12 +1,7 @@
 import {ReplayAgentDelta} from '@/replay/types'
 
 
-export type PersonaRole =
-  | "Patient"
-  | "Doctor"
-  | "TriageNurse"
-  | "BedsideNurse"
-  | "Unknown";
+
 
 export interface liveMapMetaData {
     heightInTiles: number;
@@ -24,7 +19,6 @@ export interface MovementFile {
     agents: Record<string, ReplayAgentDelta>;
     meta: MetaMovementFile;
 }
-
 
 export interface MetaMovementFile {
     curr_time: string;

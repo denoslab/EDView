@@ -14,7 +14,6 @@ export async function fetchLivePositions(step: number): Promise<MovementFile> {
     return res.json();
   }
 
-//const [pollingForState, setPollingForState] = useState(true);
 
 export function useLiveMovement (pollingForState: boolean, step: number, setStep: React.Dispatch<React.SetStateAction<number>>) {
     const query = useQuery({
@@ -22,7 +21,6 @@ export function useLiveMovement (pollingForState: boolean, step: number, setStep
         queryFn: () => fetchLivePositions(step),
         refetchInterval: pollingForState ? 250 : pollingSpeed, // Stops polling when isLive is false
         enabled: pollingForState
-        //placeholderData: (keepPreviousData) => keepPreviousData, // Keeps data reference stable mid-fetch
     });
         console.log(step)
 
@@ -33,11 +31,9 @@ export function useLiveMovement (pollingForState: boolean, step: number, setStep
     else{
         pollingSpeed = 1000;
     }
-   // const currentSimTime = query.data?.simTime;
     useEffect(() => {
         if (data && pollingForState)  {
             // Use functional update to ensure we don't use a stale step closure
-            //lastSeenSimTime.current = currentSimTime;
             setStep(prev => prev + 1);
         }
     }, [data, pollingForState, setStep]);
@@ -46,9 +42,6 @@ export function useLiveMovement (pollingForState: boolean, step: number, setStep
         return;
     }
 
-
-
-    //setStep(step + 1);
     console.log(data)
     return validateMovment(data);
 }

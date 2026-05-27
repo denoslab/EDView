@@ -23,21 +23,6 @@ export function expandFrames(frames: readonly ReplayFrame[]): ExpandedFrame[] {
   return out;
 }
 
-
-export function expandInitialState (state: initialState): ExpandedFrame[]{
-  const personas = state.state;
-
-  const carry: Record<string, ReplayAgentDelta> = {}
-  Object.entries(personas).forEach(([key, value]) => {
-  console.log(`${key}: ${value}`);
-      carry[key] = {x: value.x, y:value.y}
-  });
-  return [{step: 0,
-          simTime: state.metadata.time,
-          agents:carry
-          }];
-}
-
 export function expandLiveFrame (frame?: MovementFile, step?: number): ExpandedFrame[]{
   if (!frame || !step){
     return [];

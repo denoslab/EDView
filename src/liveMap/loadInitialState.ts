@@ -1,7 +1,4 @@
-import { BlobOptions } from "buffer";
 import type { initialState, liveMapMetaData } from "./types";
-
-
 
 export function validateInitial(input: unknown): initialState {
   if (typeof input !== "object" || input === null) {
