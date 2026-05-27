@@ -1,6 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-import type {MovementFile, MetaMovementFile} from "./types";
-import type {ReplayAgentDelta} from "@/replay/types";
+import type {MovementFile, MetaMovementFile, ReplayAgentDelta} from "./types";
 import { useEffect } from 'react';
 
 // Delay between polls in ms

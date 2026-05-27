@@ -1,7 +1,12 @@
-import {ReplayAgentDelta} from '@/replay/types'
 
 
-
+export interface ReplayAgentDelta {
+  x?: number;
+  y?: number;
+  pronunciatio?: string | null;
+  description?: string | null;
+  chat?: unknown | null;
+}
 
 export interface liveMapMetaData {
     heightInTiles: number;

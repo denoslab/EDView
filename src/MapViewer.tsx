@@ -13,7 +13,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {useEffect, useMemo, useState, useRef } from 'react';
 import { ThreeFloorPlan } from '@/components/ThreeFloorPlan';
-import {expandFrames, expandLiveFrame } from '@/replay/expandFrames';
+import {expandFrames } from '@/replay/expandFrames';
 import { loadReplayFromUrl } from '@/replay/loadReplay';
 import { usePersonaPositions } from '@/replay/usePersonaPositions';
 import { usePlayback } from '@/replay/usePlayback';
@@ -28,6 +28,8 @@ import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
 import {isSimulationUp, startLiveMap} from '@/liveMap/loadInitialState';
 import {useLiveMovement} from '@/liveMap/pollingSteps';
+import {expandLiveFrame} from '@/liveMap/expandLiveFrame';
+
 type LoadingState =
   | { kind: 'idle' }
   | { kind: 'loading'; mapId: string }
