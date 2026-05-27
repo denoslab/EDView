@@ -11,7 +11,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {useEffect, useMemo, useState } from 'react';
+import {useEffect, useMemo, useState, useRef } from 'react';
 import { ThreeFloorPlan } from '@/components/ThreeFloorPlan';
 import {expandFrames, expandLiveFrame } from '@/replay/expandFrames';
 import { loadReplayFromUrl } from '@/replay/loadReplay';
@@ -164,6 +164,30 @@ export function MapViewer() {
   ? (state.playbackType === "replay" ? expanded : liveFrame) 
   : [];
 
+    // Dashboard
+    const dashboardRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => {
+        // 3. Function to check if the click was outside
+        function handleClickOutside(event: MouseEvent) {
+          // If the ref exists and the clicked element is NOT inside the ref
+            if (dashboardRef.current && !dashboardRef.current.contains(event.target as Node)) {
+                setLiveDashboard(false); // Close the menu
+
+            }
+        }
+        // 2. Add the event listener to the document when the component mounts
+        if (liveDashboardOpen) {
+          document.addEventListener('mousedown', handleClickOutside);
+        }
+  
+        // 4. Clean up the event listener when the component unmounts or closes
+        return () => {
+
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+      }, [liveDashboardOpen]); // Only re-run the effect if isOpen changes
+  
 
 
   // 1. Memoize the configuration object so it only changes when values actually change
@@ -220,9 +244,9 @@ export function MapViewer() {
         {liveMapActive && (<button
           className='top-bar-button'
           data-testid="load-live-map"
-          onClick={() =>{
+          onClick={(e) =>{
+            e.stopPropagation();
             setLiveDashboard(!liveDashboardOpen)
-            console.log(liveDashboardOpen)
           }
         }
           style={{
@@ -231,7 +255,7 @@ export function MapViewer() {
             
           }}
         >
-          {liveDashboardOpen ? "Close Dashboard" : "Open Dashboard" }
+          Toggle Dashboard
         </button>
         )}
         {state.kind === "error" && (

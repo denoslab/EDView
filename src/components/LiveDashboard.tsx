@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import {useQuery} from '@tanstack/react-query';
 
@@ -46,10 +46,33 @@ const shortLabel = (s:String) => s.replace(/WAITING_FOR_/g, 'Wait ').replace(/_/
 export default function LiveDashboard({ liveDashboardOpen }: { liveDashboardOpen:boolean }) {
 
   const [renderComponent, setRenderComponent] = useState(liveDashboardOpen);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (liveDashboardOpen) {
+      // 3. Function to check if the click was outside
+      function handleClickOutside(event: MouseEvent) {
+        // If the ref exists and the clicked element is NOT inside the ref
+          if (dashboardRef.current && !dashboardRef.current.contains(event.target as Node)) {
+            setDashboardAnimation(false); // Close the menu
+          }
+        
+      }
+
+      // 2. Add the event listener to the document when the component mounts
+      if (renderComponent) {
+        document.addEventListener('mousedown', handleClickOutside);
+      }
+
+      // 4. Clean up the event listener when the component unmounts or closes
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [dashboardAnimation]); // Only re-run the effect if isOpen changes
+
+  useEffect(() => {
+    if(liveDashboardOpen){
       setRenderComponent(true);
+      setDashboardAnimation(true);
     }
   }, [liveDashboardOpen]);
 
@@ -176,7 +199,7 @@ export default function LiveDashboard({ liveDashboardOpen }: { liveDashboardOpen
   const tableColumns = stages.length > 0 ? Object.keys(stages[0]) : [];
 
   return (
-    <div className={`liveDashboardComponent ${liveDashboardOpen ? 'is-entering' : 'is-leaving'}`} style={{ width: '90%', fontFamily: 'sans-serif' }}
+    <div ref={dashboardRef} className={`liveDashboardComponent ${dashboardAnimation ? 'is-entering' : 'is-leaving'}`} style={{ width: '90%', fontFamily: 'sans-serif' }}
       onAnimationEnd={handleAnimationEnd}>
       
       {/* Top Cards Row */}
