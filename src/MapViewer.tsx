@@ -26,7 +26,7 @@ import LiveDashboard from '@/components/LiveDashboard';
 import { loadMapLayout, loadReplayLayout } from '@/parser/loadMapLayout';
 import type { MapLayout } from '@/parser/types';
 import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data/maps';
-import {startLiveMap} from '@/liveMap/loadInitialState';
+import {isSimulationUp, startLiveMap} from '@/liveMap/loadInitialState';
 import {useLiveMovement} from '@/liveMap/pollingSteps';
 type LoadingState =
   | { kind: 'idle' }
@@ -50,6 +50,10 @@ export function MapViewer() {
   // sidebar is always visible and this flag is a no-op.
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Check if the simulation is running to show the live map button
+  const [simulationRunning, setSimulationRunning] = useState(false);
+
+
   function loadMap(){
     let cancelled = false;
     setState({ kind: 'loading', mapId: selected.id });
@@ -70,6 +74,17 @@ export function MapViewer() {
 
   // Load the selected map.
   useEffect(loadMap, [selected]);
+
+  useEffect(()=> {
+    const fetchSimulationState = () =>{
+      isSimulationUp().then((result) => {
+      console.log("Simulation Running",result);
+      setSimulationRunning(result);})
+    }
+    fetchSimulationState(); // Initial call
+    const interval = setInterval(fetchSimulationState, 5000);
+    return () => clearInterval(interval);
+  });
 
   // Reflect the current selection in the URL so it survives reloads and
   // makes the viewer trivially shareable.
@@ -93,6 +108,8 @@ export function MapViewer() {
     if (!url) return;
     loadReplayFromUrl(url)
         .then((replay) => {loadReplay(replay)})
+
+
   });
 
   const loadReplay = (currentReplay: ReplayFile) => {
@@ -106,10 +123,10 @@ export function MapViewer() {
 
   };
 
-  const findMap = (id: String): MapCatalogueEntry => {
-    const findMap = MAP_CATALOGUE.find(map => map.id === id);
-    return findMap ? findMap : selected;
-  }
+  // const findMap = (id: String): MapCatalogueEntry => {
+  //   const findMap = MAP_CATALOGUE.find(map => map.id === id);
+  //   return findMap ? findMap : selected;
+  // }
 
   const expanded = useMemo(
     () => (replay ? expandFrames(replay.frames) : []),
@@ -198,64 +215,10 @@ export function MapViewer() {
           <h1>EDSim Floor Plan Viewer</h1>
         </div>
 
-        <button
-          data-testid="load-demo-replay"
-          onClick={() =>{
-            if(!replay){
-            resetPage();
-            loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
-            .then((replay) => { loadReplay(replay)})
-            }
-            else{
-              resetPage();
-            }
-          }
-          }
-          style={{
-            position: "absolute",
-            right: 16,
-          }}
-        >
-          Replay
-        </button>
-
-        <button
-          data-testid="load-live-map"
-          onClick={() =>{
-            if(!liveMapActive){
-              setLiveMapActive(!liveMapActive)
-
-              startLiveMap().then((initial) => {
-                loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
-                  setState({ kind: 'ready', layout, playbackType: "live" });
-                  setStep(initial.step - 1);
-                })
-              })
-              .catch((error) => {
-                  // Handle the error here
-                  console.error("Failed to load live map:", error);
-                  setState({ kind: 'error', mapId: "live-map", error: "Simulation Not Running" });
-                })
-            }
-            else{
-              loadMap();
-              setLiveMapActive(!liveMapActive)
-              setLiveDashboard(false);
-              console.log("base")
-            }
-          }
-
-          
-          }
-          style={{
-            position: "absolute",
-            right: 100,
-          }}
-        >
-          {liveMapActive ? "Back to View Mode" : "Live Map"}
-        </button>
+       
 
         {liveMapActive && (<button
+          className='top-bar-button'
           data-testid="load-live-map"
           onClick={() =>{
             setLiveDashboard(!liveDashboardOpen)
@@ -264,7 +227,7 @@ export function MapViewer() {
         }
           style={{
             position: "absolute",
-            right: 266,
+            right: 16,
             
           }}
         >
@@ -301,12 +264,13 @@ export function MapViewer() {
               return (
                 <li key={entry.id}>
                   <button
-                    style={{color: "black", backgroundColor: isActive ? "#2d6cdf" : "transparent"}}
+                    style={{color: "black", backgroundColor: isActive ? "#2d6cdf" : "#d5deee"}}
                     type="button"
                     className={`map-list-item${isActive ? ' active' : ''}`}
                     onClick={() => {
                       setSelected(entry);
                       closeSidebarOnMobile();
+                      resetPage();
                     }}
                     data-testid={`map-button-${entry.id}`}
                   >
@@ -328,8 +292,65 @@ export function MapViewer() {
             />
             Show zone labels
           </label>
+            <h2></h2>
+                  <button
+                    style={{color: "black", backgroundColor: replay ? "#2d6cdf" : "#d5deee"}}
+                    type="button"
+                    className={`map-list-item active`}
+                    onClick={() =>{
+                        if(!replay){
+                        resetPage();
+                        loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
+                        .then((replay) => { loadReplay(replay)})
+                        }
+                        else{
+                          resetPage();
+                        }
+                      }
+                    }
+                  >
+                    <span className="map-name">{!replay ? 'Open Replay Demo' : 'Close Replay Demo'}</span>
+                    <span className="map-description" 
+                    style={{color: `${replay ? 'white' : 'black'}`}}>To load your own demo, drag and drop the replay file</span>
+                  </button>
 
+                  <h2></h2>
+                  <button
+                    style={{color: "black", backgroundColor: liveMapActive ? "#2d6cdf" : "#d5deee"}}
+                    type="button"
+                    className={`map-list-item active`}
+                    onClick={() =>{
+                      if(!liveMapActive){
+                        setLiveMapActive(!liveMapActive)
 
+                        startLiveMap().then((initial) => {
+                          loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
+                            setState({ kind: 'ready', layout, playbackType: "live" });
+                            setStep(initial.step - 1);
+                          })
+                        })
+                        .catch((error) => {
+                            // Handle the error here
+                            console.error("Failed to load live map:", error);
+                            setState({ kind: 'error', mapId: "live-map", error: "Simulation Not Running" });
+                          })
+                      }
+                      else{
+                        loadMap();
+                        setLiveMapActive(!liveMapActive)
+                        setLiveDashboard(false);
+                        console.log("base")
+                      }
+                    }
+                    }
+                  >
+                    <span className="map-name">{liveMapActive ? "Close Live Map" : "Open Live Map"}
+
+                    </span>
+                    <span className="map-description" 
+                    style={{color: `${liveMapActive ? 'white' : 'black'}`}}>
+                      {simulationRunning ? "Shows current state of simulator" : "Run EDSim to see a live map of the simulaiton"}</span>
+                  </button>
           {state.kind === 'ready' ? (
             <ParserStats layout={state.layout} />
           ) : null}
