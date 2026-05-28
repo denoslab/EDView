@@ -2,12 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { visualizer } from "rollup-plugin-visualizer";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? '/EDView/' : '/',
-  plugins: [react(), visualizer({ open: true })],
+  plugins: [react()],
   esbuild: {
   },
   resolve: {
