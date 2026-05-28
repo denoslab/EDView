@@ -125,6 +125,19 @@ export function MapViewer() {
 
   };
 
+  const startReplay = () => {
+                      
+    setIsSidebarOpen(false);
+    if(!replay){
+    resetPage();
+    loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
+    .then((replay) => { loadReplay(replay)})
+    }
+    else{
+      resetPage();
+    }
+  }
+
   // const findMap = (id: String): MapCatalogueEntry => {
   //   const findMap = MAP_CATALOGUE.find(map => map.id === id);
   //   return findMap ? findMap : selected;
@@ -166,30 +179,56 @@ export function MapViewer() {
   ? (state.playbackType === "replay" ? expanded : liveFrame) 
   : [];
 
-    // Dashboard
-    const dashboardRef = useRef<HTMLDivElement>(null);
-    
-    useEffect(() => {
-        // 3. Function to check if the click was outside
-        function handleClickOutside(event: MouseEvent) {
-          // If the ref exists and the clicked element is NOT inside the ref
-            if (dashboardRef.current && !dashboardRef.current.contains(event.target as Node)) {
-                setLiveDashboard(false); // Close the menu
-
-            }
-        }
-        // 2. Add the event listener to the document when the component mounts
-        if (liveDashboardOpen) {
-          document.addEventListener('mousedown', handleClickOutside);
-        }
+  // Dashboard
+  const dashboardRef = useRef<HTMLDivElement>(null);
   
-        // 4. Clean up the event listener when the component unmounts or closes
-        return () => {
+ const liveMapButton = () => {
+    if(!liveMapActive){
+      setIsSidebarOpen(false);
+      setLiveMapActive(!liveMapActive)
 
-          document.removeEventListener('mousedown', handleClickOutside);
-        };
-      }, [liveDashboardOpen]); // Only re-run the effect if isOpen changes
-  
+      startLiveMap().then((initial) => {
+        loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
+          setState({ kind: 'ready', layout, playbackType: "live" });
+          setStep(initial.step - 1);
+        })
+      })
+      .catch((error) => {
+          // Handle the error here
+          console.error("Failed to load live map:", error);
+          setState({ kind: 'error', mapId: "live-map", error: "Simulation Not Running" });
+        })
+    }
+    else{
+      loadMap();
+      setLiveMapActive(!liveMapActive)
+      setLiveDashboard(false);
+      console.log("base")
+    }
+  }
+
+  // Dashboard disapears when click off it
+  useEffect(() => {
+      // 3. Function to check if the click was outside
+      function handleClickOutside(event: MouseEvent) {
+        // If the ref exists and the clicked element is NOT inside the ref
+          if (dashboardRef.current && !dashboardRef.current.contains(event.target as Node)) {
+              setLiveDashboard(false); // Close the menu
+          }
+      }
+      // 2. Add the event listener to the document when the component mounts
+      if (liveDashboardOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+      }
+
+      // 4. Clean up the event listener when the component unmounts or closes
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [liveDashboardOpen]); // Only re-run the effect if isOpen changes
+
+
+
 
 
   // 1. Memoize the configuration object so it only changes when values actually change
@@ -244,7 +283,7 @@ export function MapViewer() {
        
 
         {liveMapActive && (<button
-          className='top-bar-button'
+          className= {simulationRunning ? 'top-bar-button' : 'inactive-button'}
           data-testid="load-live-map"
           onClick={(e) =>{
             e.stopPropagation();
@@ -255,22 +294,21 @@ export function MapViewer() {
           style={{
             position: "absolute",
             right: 16,
-            
+            padding: "16px",
           }}
         >
           Toggle Dashboard
         </button>
         )}
-        {state.kind === "error" && (
-        <div style={{
+        {(liveMapActive && !simulationRunning) && (
+        <div 
+        className='inactive-button'
+        style={{
           padding: '12px',
-          backgroundColor: '#fee2e2',
-          color: '#991b1b',
-          border: '1px solid #fca5a5',
-          borderRadius: '6px',
+          
 
         }}>
-          <strong>Error:</strong> There is no simulation running
+          <strong>Error:</strong> Simulation has stopped running
         </div>
       )}
       </header>
@@ -293,7 +331,7 @@ export function MapViewer() {
                   <button
                     style={{color: "black", backgroundColor: isActive ? "#2d6cdf" : "#d5deee"}}
                     type="button"
-                    className={`map-list-item${isActive ? ' active' : ''}`}
+                    className={`sidebar-list-item${isActive ? ' active' : ''}`}
                     onClick={() => {
                       setSelected(entry);
                       closeSidebarOnMobile();
@@ -319,66 +357,35 @@ export function MapViewer() {
             />
             Show zone labels
           </label>
-            <h2>Control Options</h2>
+            <h2>Viewing Options</h2>
                   <button
                     style={{color: "black", backgroundColor: replay ? "#2d6cdf" : "#d5deee"}}
                     type="button"
-                    className={`map-list-item active`}
-                    onClick={() =>{
-                        if(!replay){
-                        resetPage();
-                        loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
-                        .then((replay) => { loadReplay(replay)})
-                        }
-                        else{
-                          resetPage();
-                        }
-                      }
+                    className={`sidebar-list-item active`}
+                    onClick={startReplay
                     }
                   >
                     <span className="map-name">{!replay ? 'Open Replay Demo' : 'Close Replay Demo'}</span>
                     <span className="map-description" 
-                    style={{color: `${replay ? 'white' : 'black'}`}}>To load your own demo, drag and drop the replay file</span>
+                    style={{color: `${replay ? 'white' : 'black'}`}}>To load your own replay, drag and drop the replay file.</span>
                   </button>
 
                   <h2></h2>
                   <button
-                    style={{color: "black", backgroundColor: simulationRunning ? (liveMapActive ? "#2d6cdf" : "#d5deee") : "#eed5d5"}}
+                    style={{color: "black", backgroundColor: simulationRunning ? (liveMapActive ? "#2d6cdf" : "#d5deee") : "#eed5d5",
+                           
+                    }}
                     type="button"
-                    className={`map-list-item active`}
+                    className={simulationRunning ? `sidebar-list-item active` : "inactive-button"}
                     disabled={!simulationRunning}
-                    onClick={() =>{
-                      if(!liveMapActive){
-                        setIsSidebarOpen(false);
-                        setLiveMapActive(!liveMapActive)
-
-                        startLiveMap().then((initial) => {
-                          loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
-                            setState({ kind: 'ready', layout, playbackType: "live" });
-                            setStep(initial.step - 1);
-                          })
-                        })
-                        .catch((error) => {
-                            // Handle the error here
-                            console.error("Failed to load live map:", error);
-                            setState({ kind: 'error', mapId: "live-map", error: "Simulation Not Running" });
-                          })
-                      }
-                      else{
-                        loadMap();
-                        setLiveMapActive(!liveMapActive)
-                        setLiveDashboard(false);
-                        console.log("base")
-                      }
-                    }
-                    }
+                    onClick={liveMapButton}
                   >
                     <span className="map-name">{simulationRunning ? (liveMapActive ? "Close Live Map" : "Open Live Map") : "Simulation not running"}
 
                     </span>
                     <span className="map-description" 
                     style={{color: `${liveMapActive ? 'white' : 'black'}`}}>
-                      {simulationRunning ? "Shows current state of simulator" : "Run EDSim to see a live map of the simulaiton"}</span>
+                      {simulationRunning ? "Shows current state of simulator" : "Run EDSim and view the map here."}</span>
                   </button>
           
           {state.kind === 'ready' ? (
@@ -387,7 +394,7 @@ export function MapViewer() {
           {replay && (
           
           <div className = 'legend'>
-            {replay && <PersonaColorLegend />}
+            {(replay || liveMapActive) && <PersonaColorLegend />}
           </div>
           )}
           <div className='disclaimer'>

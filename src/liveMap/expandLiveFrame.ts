@@ -17,7 +17,6 @@ export function expandLiveFrame (frame?: MovementFile, step?: number): ExpandedF
           agents:personas
           } 
           
-console.log("out", out)
 
   return [out];
 }
