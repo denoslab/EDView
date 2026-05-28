@@ -46,7 +46,6 @@ export function usePersonaPositions(args: {
     return livePositions(args);
   }
   else{
-        console.log(args)
 
     return replayPositions(args);
   }
