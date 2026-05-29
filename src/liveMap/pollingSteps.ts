@@ -1,5 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-import type {MovementFile, MetaMovementFile, ReplayAgentDelta} from "./types";
+import type {MovementFile, MetaMovementFile} from "./types";
 import { useEffect } from 'react';
 
 // Delay between polls in ms
@@ -23,6 +23,7 @@ export function useLiveMovement (pollingForState: boolean, step: number, setStep
     });
     console.log("Step", step)
     const data = query.data;
+    
     if(query.isSuccess){
         pollingSpeed = 250;
     }
@@ -39,7 +40,7 @@ export function useLiveMovement (pollingForState: boolean, step: number, setStep
     if (!data || !pollingForState) {
         return;
     }
-
+    console.log("Movement File:", data)
     return validateMovment(data);
 }
   
@@ -64,10 +65,7 @@ export function validateMovment(movementFile:MovementFile){
             throw new Error("agents missing or not an object");
         }
         else{
-            const agents = r.agents as Record<string, ReplayAgentDelta>
-            if (Object.keys(agents).length === 0) {
-                throw new Error("agents object cannot be empty");
-            }
+
         }
           
       return movementFile as MovementFile;

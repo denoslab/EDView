@@ -34,7 +34,7 @@ export function validateReplay(input: unknown): ReplayFile {
   if (!Array.isArray(r.frames)) {
     throw new Error("frames must be an array");
   }
-
+  console.log(input)
   return input as ReplayFile;
 }
 
@@ -42,11 +42,14 @@ export async function loadReplayFromUrl(url: string): Promise<ReplayFile> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`);
   const json = await res.json();
+    console.log("Replay File", res)
+
   return validateReplay(json);
 }
 
 export async function loadReplayFromFile(file: File): Promise<ReplayFile> {
   const text = await file.text();
   const json = JSON.parse(text);
+  console.log(json)
   return validateReplay(json);
 }

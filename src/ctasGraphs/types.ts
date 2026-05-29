@@ -1,62 +1,3 @@
-
-export type PersonaRole =
-  | "Patient"
-  | "Doctor"
-  | "TriageNurse"
-  | "BedsideNurse"
-  | "Unknown";
-
-export interface ReplayAgentDelta {
-  x?: number;
-  y?: number;
-  pronunciatio?: string | null;
-  description?: string | null;
-  chat?: unknown | null;
-}
-
-export interface ReplayFrame {
-  step: number;
-  simTime: string;
-  agents: Record<string, ReplayAgentDelta>;
-}
-
-export interface ReplayPersonaFinalState {
-  state?: string;
-  ctas?: number | null;
-  icd?: string | null;
-  bedAssignment?: string | null;
-  injuriesZone?: string | null;
-}
-
-export interface ReplayPersona {
-  id: string;
-  role: PersonaRole;
-  finalState?: ReplayPersonaFinalState;
-}
-
-export interface ReplayMetadata {
-  simulationId: string;
-  simStartIso: string;
-  secPerStep: number;
-  totalSteps: number;
-  mazeName: string;
-  widthInTiles: number;
-  heightInTiles: number;
-  builderVersion: string;
-}
-
-export interface ReplayFile {
-  schemaVersion: 1;
-  mapId: string;
-  mapLayout: Object;
-  metadata: ReplayMetadata;
-  personas: ReplayPersona[];
-  frames: ReplayFrame[];
-  CtasStages: CtasStageData;
-}
-
-
-// Graph data
 export interface CtasHistogramBucket {
   /** Sequential string ranges showing boundaries for a duration window (e.g., "0.0–0.5") */
   bins: string[];
@@ -82,7 +23,7 @@ export interface TriageStageBreakdown {
  * Core response data representation returned by the `/api/state_times/` endpoint.
  * Contains explicitly defined properties for each Emergency Department simulation phase.
  */
-export interface CtasStageData {
+export interface SimulationPayload {
   /** VisitPia: Distribution of Wait Time (Arrival to Physician Initial Assessment time) */
   waiting: TriageStageBreakdown;
   /** DispPia: Distribution of Time spent in Treatment (PIA to Disposition decision) */
@@ -95,7 +36,7 @@ export interface CtasStageData {
  * Keeps track of maximum Y-axis peaks for scale normalization across different dashboard slides.
  */
 export type YMaxMetrics = {
-  [stage in keyof CtasStageData]?: number;
+  [stage in keyof SimulationPayload]?: number;
 };
 
 export interface AlertConfiguration {

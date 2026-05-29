@@ -23,6 +23,7 @@ export interface initialState {
 export interface MovementFile {
     agents: Record<string, ReplayAgentDelta>;
     meta: MetaMovementFile;
+    step: number
 }
 
 export interface MetaMovementFile {

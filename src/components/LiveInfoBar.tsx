@@ -1,7 +1,18 @@
 import type { MetaMovementFile } from "@/liveMap/types";
+import { useEffect, useState } from "react";
 
 
-export function LiveInfoBar({ meta, step }: { meta?: MetaMovementFile, step?: number }) {
+export function LiveInfoBar({ meta, step }: { meta: MetaMovementFile, step: number }) {
+  
+  const [percentageComplete, setPercentageComplete] = useState<number>(() => {
+    return (meta?.total_steps && step) ? (step / meta.total_steps)*100 : 100
+  });
+  useEffect(()=> {
+    console.log("Total Steps",meta?.total_steps)
+
+    setPercentageComplete((meta?.total_steps && step) ? (step / meta.total_steps)*100 : 100);
+  },[step, meta]);
+  //const percentageComplete = (meta?.total_steps && step) ? (step / meta.total_steps)*100 : 100;
   return (
     <div
     className='bottomBar'
@@ -45,7 +56,7 @@ export function LiveInfoBar({ meta, step }: { meta?: MetaMovementFile, step?: nu
       Step:
       <span data-testid="step">{step ? step : 'null'}</span> |
       Percentage Completed:
-      <span data-testid="Percent">{meta?.total_steps && step ? `${((step / meta.total_steps)*100).toFixed(2)}%` : 'null'}</span>
+      <span data-testid="Percent">{percentageComplete < 100 ? percentageComplete : 100 }%</span>
     </div>
   );
 }

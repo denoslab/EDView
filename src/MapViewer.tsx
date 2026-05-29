@@ -29,6 +29,7 @@ import { MAP_CATALOGUE, getCatalogueEntry, type MapCatalogueEntry } from '@/data
 import {isSimulationUp, startLiveMap} from '@/liveMap/loadInitialState';
 import {useLiveMovement} from '@/liveMap/pollingSteps';
 import {expandLiveFrame} from '@/liveMap/expandLiveFrame';
+import CTASGraphs from './components/StageGraphs';
 
 type LoadingState =
   | { kind: 'idle' }
@@ -130,7 +131,7 @@ export function MapViewer() {
     setIsSidebarOpen(false);
     if(!replay){
     resetPage();
-    loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo.json`)
+    loadReplayFromUrl(`${import.meta.env.BASE_URL}replays/small_ed_demo3.json`)
     .then((replay) => { loadReplay(replay)})
     }
     else{
@@ -166,7 +167,7 @@ export function MapViewer() {
 
   const [step, setStep] = useState(0);
   const [liveMapActive, setLiveMapActive] = useState(false);
-  const [liveDashboardOpen, setLiveDashboard] = useState(false);
+  const [overlay, setOverlay] = useState(false);
   const queryClientDashBoard = new QueryClient();
 
   const liveState = useLiveMovement(liveMapActive, step, setStep);
@@ -183,6 +184,7 @@ export function MapViewer() {
   const dashboardRef = useRef<HTMLDivElement>(null);
   
  const liveMapButton = () => {
+    resetPage()
     if(!liveMapActive){
       setIsSidebarOpen(false);
       setLiveMapActive(!liveMapActive)
@@ -190,7 +192,7 @@ export function MapViewer() {
       startLiveMap().then((initial) => {
         loadReplayLayout(selected.load, initial.mapLayout).then((layout) => {
           setState({ kind: 'ready', layout, playbackType: "live" });
-          setStep(initial.step - 1);
+          setStep(initial.step);
         })
       })
       .catch((error) => {
@@ -200,9 +202,6 @@ export function MapViewer() {
         })
     }
     else{
-      loadMap();
-      setLiveMapActive(!liveMapActive)
-      setLiveDashboard(false);
       console.log("base")
     }
   }
@@ -213,11 +212,12 @@ export function MapViewer() {
       function handleClickOutside(event: MouseEvent) {
         // If the ref exists and the clicked element is NOT inside the ref
           if (dashboardRef.current && !dashboardRef.current.contains(event.target as Node)) {
-              setLiveDashboard(false); // Close the menu
+              setOverlay(false); // Close the menu
+
           }
       }
       // 2. Add the event listener to the document when the component mounts
-      if (liveDashboardOpen) {
+      if (overlay) {
         document.addEventListener('mousedown', handleClickOutside);
       }
 
@@ -225,7 +225,7 @@ export function MapViewer() {
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
-    }, [liveDashboardOpen]); // Only re-run the effect if isOpen changes
+    }, [overlay]); // Only re-run the effect if isOpen changes
 
 
 
@@ -247,11 +247,12 @@ export function MapViewer() {
   function resetPage() {
     setLiveMapActive(false);
     setReplay(null);
-    setLiveDashboard(false);
+    setOverlay(false);
     loadMap();
   }
 
   return (
+    
     <>
     <ReplayDropZone
       onLoaded={loadReplay}
@@ -287,7 +288,7 @@ export function MapViewer() {
           data-testid="load-live-map"
           onClick={(e) =>{
             e.stopPropagation();
-            setLiveDashboard(!liveDashboardOpen);
+            setOverlay(!overlay);
             setIsSidebarOpen(false);
           }
         }
@@ -298,8 +299,25 @@ export function MapViewer() {
           }}
         >
           Toggle Dashboard
-        </button>
-        )}
+        </button>)}
+
+        {replay?.CtasStages && (<button
+          className= { 'top-bar-button'}
+          data-testid="graph-toggle-button"
+          onClick={() =>{
+            setOverlay(!overlay)
+          }
+        }
+          style={{
+            position: "absolute",
+            right: 16,
+            padding: "16px",
+          }}
+        >
+          Toggle CTAS Graphs
+        </button>)}
+
+        
         {(liveMapActive && !simulationRunning) && (
         <div 
         className='inactive-button'
@@ -440,15 +458,23 @@ export function MapViewer() {
 
       </div>
     </div>
- <div className='liveDashboard' style={{
-
-    }}>
+    {liveMapActive && <div className='overlay-block '>
       <QueryClientProvider client={queryClientDashBoard}>
-      <LiveDashboard liveDashboardOpen={liveDashboardOpen}
       
-      />
-    </QueryClientProvider>
-    </div>
+      <LiveDashboard liveDashboardOpen={overlay}/>
+      </QueryClientProvider>
+
+    </div>}
+
+    {replay && <div className='overlay-block'>
+
+      {replay?.CtasStages && 
+        <CTASGraphs
+        ctasData={replay.CtasStages}
+        graphOpen={overlay}/>
+        }
+
+    </div>}
 
     {replay !== null && (
       <PlaybackBar
@@ -456,7 +482,7 @@ export function MapViewer() {
         simTime={expanded[playback.currentStep]?.simTime}
       />
     )}
-    {liveMapActive && (
+    {liveMapActive && liveState?.meta && (
       <LiveInfoBar
         meta={liveState?.meta}
         step={step}

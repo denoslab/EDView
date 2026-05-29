@@ -177,7 +177,7 @@ export default function LiveDashboard({ liveDashboardOpen }: { liveDashboardOpen
   const tableColumns = stages.length > 0 ? Object.keys(stages[0]) : [];
 
   return (
-    <div ref={dashboardRef} className={`liveDashboardComponent ${liveDashboardOpen ? 'is-entering' : 'is-leaving'}`} style={{ width: '90%', fontFamily: 'sans-serif' }}
+    <div ref={dashboardRef} className={`overlay-div ${liveDashboardOpen ? 'is-entering' : 'is-leaving'}`} style={{ width: '90%', fontFamily: 'sans-serif' }}
       onAnimationEnd={handleAnimationEnd}>
       
       {/* Top Cards Row */}
