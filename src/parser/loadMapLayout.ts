@@ -28,6 +28,8 @@ export interface LoadMapOptions {
   gameObjectBlocksUrl: string;
   /** URL of `spawning_location_blocks.csv`. */
   spawningBlocksUrl: string;
+  /** URL of the definition layer file. */
+  definitionUrl: string;
   /** Optional fetch override for testing. Defaults to global `fetch`. */
   fetchImpl?: typeof fetch;
   /** Optional warning sink (parser non-fatal warnings). */
@@ -35,7 +37,7 @@ export interface LoadMapOptions {
 }
 
 /**
- * Fetch all four files in parallel, decode them, and produce a
+ * Fetch all five files in parallel, decode them, and produce a
  * {@link MapLayout}.
  *
  * @throws If any HTTP request fails or the parser surfaces a fatal error
@@ -44,18 +46,20 @@ export interface LoadMapOptions {
 export async function loadMapLayout(opts: LoadMapOptions): Promise<MapLayout> {
   const fetchImpl = opts.fetchImpl ?? fetch;
 
-  const [tiledRes, arenaRes, gameObjectRes, spawningRes] = await Promise.all([
+  const [tiledRes, arenaRes, gameObjectRes, spawningRes, definitionRes] = await Promise.all([
     fetchImpl(opts.tiledJsonUrl),
     fetchImpl(opts.arenaBlocksUrl),
     fetchImpl(opts.gameObjectBlocksUrl),
-    fetchImpl(opts.spawningBlocksUrl)
+    fetchImpl(opts.spawningBlocksUrl),
+    fetchImpl(opts.definitionUrl)
   ]);
 
   for (const [name, res] of [
     [opts.tiledJsonUrl, tiledRes],
     [opts.arenaBlocksUrl, arenaRes],
     [opts.gameObjectBlocksUrl, gameObjectRes],
-    [opts.spawningBlocksUrl, spawningRes]
+    [opts.spawningBlocksUrl, spawningRes],
+    [opts.definitionUrl, definitionRes]
   ] as const) {
     if (!res.ok) {
       throw new Error(`Failed to fetch "${name}": ${res.status} ${res.statusText}`);
@@ -63,33 +67,35 @@ export async function loadMapLayout(opts: LoadMapOptions): Promise<MapLayout> {
   }
 
   const tiled = (await tiledRes.json()) as TiledMap;
+  const definitionBlocks = (await definitionRes.json()) as TiledMap;
   const arenaBlocks = await arenaRes.text();
   const gameObjectBlocks = await gameObjectRes.text();
   const spawningBlocks = await spawningRes.text();
-
   const specialBlocks = parseSpecialBlocks({
     arenaBlocks,
     gameObjectBlocks,
     spawningBlocks
   });
 
-  return parseTiledJSON(opts.mapId, tiled, specialBlocks, opts.onWarning);
+  return parseTiledJSON(opts.mapId, tiled, definitionBlocks, specialBlocks, opts.onWarning);
 }
 
 export async function loadReplayLayout(opts: LoadMapOptions, map: Object): Promise<MapLayout> {
   console.log("Loading replay layout with options:", opts);
   const fetchImpl = opts.fetchImpl ?? fetch;
 
-  const [arenaRes, gameObjectRes, spawningRes] = await Promise.all([
+  const [arenaRes, gameObjectRes, spawningRes, definitionRes] = await Promise.all([
     fetchImpl(opts.arenaBlocksUrl),
     fetchImpl(opts.gameObjectBlocksUrl),
-    fetchImpl(opts.spawningBlocksUrl)
+    fetchImpl(opts.spawningBlocksUrl),
+    fetchImpl(opts.definitionUrl)
   ]);
 
   for (const [name, res] of [
     [opts.arenaBlocksUrl, arenaRes],
     [opts.gameObjectBlocksUrl, gameObjectRes],
-    [opts.spawningBlocksUrl, spawningRes]
+    [opts.spawningBlocksUrl, spawningRes],
+    [opts.definitionUrl, definitionRes]
   ] as const) {
     if (!res.ok) {
       throw new Error(`Failed to fetch "${name}": ${res.status} ${res.statusText}`);
@@ -100,6 +106,8 @@ export async function loadReplayLayout(opts: LoadMapOptions, map: Object): Promi
   }
 
   const tiled = map as TiledMap;
+  const definitionBlocks = (await definitionRes.json()) as TiledMap;
+
   const arenaBlocks = await arenaRes.text();
   const gameObjectBlocks = await gameObjectRes.text();
   const spawningBlocks = await spawningRes.text();
@@ -109,5 +117,5 @@ export async function loadReplayLayout(opts: LoadMapOptions, map: Object): Promi
     gameObjectBlocks,
     spawningBlocks
   });
-  return parseTiledJSON(opts.mapId, tiled, specialBlocks, opts.onWarning);
+  return parseTiledJSON(opts.mapId, tiled, definitionBlocks, specialBlocks, opts.onWarning);
 }

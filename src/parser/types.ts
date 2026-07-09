@@ -31,6 +31,9 @@ export type ZoneId =
   | 'minor_injuries_zone'
   | 'major_injuries_zone'
   | 'trauma_room'
+  | 'fast_track_area'
+  | "admission_room"
+  | "stretcher_zone"
   | 'diagnostic_room'
   | 'exit';
 
@@ -176,7 +179,7 @@ export interface WallSegment {
   /** End point in tile-edge coordinates. */
   x2: number;
   y2: number;
-  type: 'wall' | 'doorway';
+  type: 'wall' | 'doorway' | 'diag';
   validDecorationRotation: string;
 }
 
@@ -241,16 +244,14 @@ export interface TiledMap {
  * the human-readable zone label that appears in the CSV's last column.
  */
 export interface ArenaBlockRow {
-  tileId: number;
-  zoneLabel: string;
+  zoneLabels: string[];
 }
 
 /**
  * Mapping rows decoded from `game_object_blocks.csv`.
  */
 export interface GameObjectBlockRow {
-  tileId: number;
-  objectLabel: string;
+  objectLabels: string[];
 }
 
 /**

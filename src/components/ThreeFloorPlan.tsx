@@ -282,7 +282,7 @@ function Walls({ layout }: { layout: MapLayout }) {
           key: `wall-v-${i}-${z}`,
           x,
           z: z + 0.5,
-          rotY: Math.PI / 2,
+          rotY: wall.type === 'diag' ? Math.PI / 4 : Math.PI / 2,
           type: wall.type === 'doorway' ? doorModel : wallModel,
           decoration: decoration
         });

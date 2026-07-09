@@ -57,8 +57,13 @@ export const LAYER_NAMES = {
   spawningBlocks: 'Spawning Blocks',
   walls: 'Walls',
   collisions: 'Collisions',
-  graphic: 'Tile Layer 1'
+  graphic: 'Tile Layer 1',
 } as const;
+
+const LAYER_DEFINITION = {
+  arena_def: 'Arena Definition',
+  object_def: 'Object Definition'
+} as const
 
 /* -------------------------------------------------------------------------- */
 /* CSV-label normalisation                                                    */
@@ -94,6 +99,12 @@ export function normaliseZoneId(label: string): ZoneId | undefined {
       return 'diagnostic_room';
     case 'exit':
       return 'exit';
+    case 'fast track area':
+      return 'fast_track_area';
+    case 'admission room':
+      return 'admission_room';
+    case 'stretcher zone':
+      return 'stretcher_zone';
     default:
       return undefined;
   }
@@ -121,6 +132,12 @@ export function zoneDisplayName(zoneId: ZoneId): string {
       return 'Diagnostics';
     case 'exit':
       return 'Exit';
+    case 'fast_track_area':
+      return 'Fast Track';
+    case 'admission_room':
+      return 'Admission';
+    case 'stretcher_zone':
+      return 'Stretcher Zone';
   }
 }
 
@@ -153,7 +170,7 @@ export function normaliseEquipmentType(label: string): EquipmentType | undefined
       return 'triage_bed';
       
     default:
-      return undefined;
+      return cleaned.replaceAll(" ", "_") as EquipmentType;
   }
 }
 
@@ -224,7 +241,7 @@ function tileAt(layer: TiledLayer, x: number, y: number): number {
  */
 export function extractZoneRegions(
   arena: TiledLayer,
-  arenaTileToZone: Map<number, ZoneId>
+  arenaTileToZone: Map<number, ZoneId>,
 ): ZoneRegion[] {
   const visited: boolean[] = new Array(arena.data.length).fill(false);
   const regions: ZoneRegion[] = [];
@@ -575,6 +592,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
   for (let y = 0; y < layer.height; y++) {
     for (let x = 0; x < layer.width; x++) {
       if (!isWall(x, y)) continue;
+
+
       if (!isWall(x + 1, y) && !isWall(x - 1, y )) {
         addVertical(x, y); // Vertical wall
       } 
@@ -584,6 +603,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       else if (isWall(x, y + 1) && isWall(x - 1, y)) {
         addVertical(x, y); // Vertical wall
       }
+
 
 
       if (isWall(x + 1, y)) {
@@ -645,7 +665,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
             validDecorationRotation: "none"
           });
         }
-
+        
         runStart = x;
         runEnd = x + 1;
       }
@@ -697,13 +717,14 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       } else if (y === runEnd) {
         runEnd = y + 1;
       } else {
+        const oneWall = (runStart - runEnd) === -1
         segments.push({
           orientation: 'vertical',
           x1: x,
           y1: runStart,
           x2: x,
           y2: runEnd,
-          type: 'wall',
+          type: oneWall ? 'diag' : 'wall',
           validDecorationRotation: validDecorationRotation
 
         });
@@ -735,6 +756,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         if (x < half)          validDecorationRotation = "left_edge";
         else if (x > half) validDecorationRotation = "right_edge";
       }
+      
       segments.push({
         orientation: 'vertical',
         x1: x,
@@ -785,17 +807,19 @@ export function extractCollisionMask(layer: TiledLayer): boolean[][] {
  */
 export function buildArenaTileLookup(
   blocks: SpecialBlocks['arenaBlocks'],
+  arenaDef: TiledLayer,
   onWarning?: (msg: string) => void
 ): Map<number, ZoneId> {
   const lookup = new Map<number, ZoneId>();
   const warn = onWarning ?? ((m: string) => console.warn(m));
-  for (const row of blocks) {
-    const zoneId = normaliseZoneId(row.zoneLabel);
+  for (let i = 0; i < blocks[0].zoneLabels.length; i++) {
+    const label = blocks[0].zoneLabels[i];
+    const zoneId = normaliseZoneId(label);
     if (!zoneId) {
-      warn(`arena_blocks: unknown zone label "${row.zoneLabel}" for tile ${row.tileId}`);
+      warn(`arena_blocks: unknown zone label "${label}" for tile ${blocks[0].zoneLabels[i]}`);
       continue;
     }
-    lookup.set(row.tileId, zoneId);
+    lookup.set(arenaDef.data[arenaDef.width * 1 + i] + 1280 , zoneId );
   }
   return lookup;
 }
@@ -805,20 +829,23 @@ export function buildArenaTileLookup(
  */
 export function buildEquipmentLookup(
   blocks: SpecialBlocks['gameObjectBlocks'],
+  defLayer: TiledLayer,
   onWarning?: (msg: string) => void
 ): Map<number, EquipmentType> {
   const lookup = new Map<number, EquipmentType>();
   const warn = onWarning ?? ((m: string) => console.warn(m));
-  for (const row of blocks) {
-    const type = normaliseEquipmentType(row.objectLabel);
-    if (!type) {
-      warn(
-        `game_object_blocks: unknown object label "${row.objectLabel}" for tile ${row.tileId}`
-      );
+  for (let i = 0; i < blocks[0].objectLabels.length; i++) {
+    const label = blocks[0].objectLabels[i];
+    console.log(label)
+    const objectId = normaliseEquipmentType(label);
+    if (!objectId) {
+      warn(`game_object_blocks: unknown object label "${label}" for tile ${blocks[0].objectLabels[i]}`);
       continue;
     }
-    lookup.set(row.tileId, type);
+    lookup.set(defLayer.data[defLayer.width * 0 + i] + 1280, objectId as EquipmentType);
   }
+  console.log(lookup)
+
   return lookup;
 }
 
@@ -859,6 +886,7 @@ export function buildSpawningLookup(
 export function parseTiledJSON(
   mapId: string,
   tiled: TiledMap,
+  tileDef: TiledMap,
   specialBlocks: SpecialBlocks,
   onWarning?: (msg: string) => void
 ): MapLayout {
@@ -868,10 +896,13 @@ export function parseTiledJSON(
   const wallsLayer = findLayer(tiled, LAYER_NAMES.collisions);
   const collisionsLayer = findLayer(tiled, LAYER_NAMES.collisions);
   const graphicLayer = findLayer(tiled, LAYER_NAMES.graphic);
+  const defArenaLayer = findLayer(tileDef, LAYER_DEFINITION.arena_def);
+  const defObjectLayer = findLayer(tileDef, LAYER_DEFINITION.object_def);
 
-  const arenaLookup = buildArenaTileLookup(specialBlocks.arenaBlocks, onWarning);
+  const arenaLookup = buildArenaTileLookup(specialBlocks.arenaBlocks, defArenaLayer, onWarning);
   const equipmentLookup = buildEquipmentLookup(
     specialBlocks.gameObjectBlocks,
+    defObjectLayer,
     onWarning
   );
   const spawningLookup = buildSpawningLookup(specialBlocks.spawningBlocks, onWarning);

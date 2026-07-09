@@ -17,11 +17,13 @@
 import type { LoadMapOptions } from '@/parser/loadMapLayout';
 
 import smallEdJsonUrl from '@maps/visuals/small_ed_layout.json?url';
-//import foothillsJsonUrl from '@maps/visuals/foothills_ed_layout.json?url';
-import arenaBlocksUrl from '@maps/matrix/special_blocks/arena_blocks.csv?url';
-import gameObjectBlocksUrl from '@maps/matrix/special_blocks/game_object_blocks.csv?url';
-import spawningBlocksUrl from '@maps/matrix/special_blocks/spawning_location_blocks.csv?url';
+import rockyviewEDJsonUrl from '@maps/visuals/rockyview_ed_layout.json?url';
+import def from '@maps/visuals/tile_definitions.json?url';
 
+//import foothillsJsonUrl from '@maps/visuals/foothills_ed_layout.json?url';
+import arenaBlocksUrl from '@maps/matrix/special_blocks/arena_to_tiles.csv?url';
+import gameObjectBlocksUrl from '@maps/matrix/special_blocks/objects_to_tiles.csv?url';
+import spawningBlocksUrl from '@maps/matrix/special_blocks/spawning_location_blocks.csv?url';
 /** Catalogue entry for one Tiled map. */
 export interface MapCatalogueEntry {
   /** Stable id used in URLs and tests. */
@@ -50,7 +52,21 @@ export const MAP_CATALOGUE: MapCatalogueEntry[] = [
       tiledJsonUrl: smallEdJsonUrl,
       arenaBlocksUrl,
       gameObjectBlocksUrl,
-      spawningBlocksUrl
+      spawningBlocksUrl,
+      definitionUrl: def
+    }
+  },
+    {
+    id: 'rockyview_ed_layout',
+    displayName: 'Rockyview ED',
+    description: 'Map layout based on the Rockyview ED.',
+    load: {
+      mapId: 'rockyview_ed_layout',
+      tiledJsonUrl: rockyviewEDJsonUrl,
+      arenaBlocksUrl,
+      gameObjectBlocksUrl,
+      spawningBlocksUrl,
+      definitionUrl: def
     }
   },
   // {

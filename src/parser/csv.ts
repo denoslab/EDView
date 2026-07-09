@@ -64,25 +64,12 @@ function splitCells(row: string): string[] {
  * @throws If a row has fewer than 4 cells or a non-numeric tile id.
  */
 export function parseArenaBlocksCSV(raw: string): ArenaBlockRow[] {
-  return splitRows(raw).map((row, index) => {
-    const cells = splitCells(row);
-    if (cells.length < 4) {
-      throw new Error(
-        `arena_blocks.csv row ${index + 1}: expected at least 4 cells, got ${cells.length} (${row})`
-      );
-    }
-    const tileId = Number.parseInt(cells[0]!, 10);
-    if (!Number.isFinite(tileId)) {
-      throw new Error(
-        `arena_blocks.csv row ${index + 1}: tile id is not numeric (${cells[0]})`
-      );
-    }
+  return splitRows(raw).map((row) => {
+    const rawCells = splitCells(row);
+    
+    // Turn each cell into an integer (using radix 10 for safety)
     return {
-      tileId,
-      // The zone label always lives in the *last* column. Some rows may have
-      // extra commas inside the label (none today, but the spec leaves room
-      // for that), so prefer "join everything from index 3 onward".
-      zoneLabel: cells.slice(3).join(', ').trim()
+      zoneLabels: rawCells,
     };
   });
 }
@@ -101,22 +88,12 @@ export function parseArenaBlocksCSV(raw: string): ArenaBlockRow[] {
  * @throws If a row has fewer than 4 cells or a non-numeric tile id.
  */
 export function parseGameObjectBlocksCSV(raw: string): GameObjectBlockRow[] {
-  return splitRows(raw).map((row, index) => {
-    const cells = splitCells(row);
-    if (cells.length < 4) {
-      throw new Error(
-        `game_object_blocks.csv row ${index + 1}: expected at least 4 cells, got ${cells.length} (${row})`
-      );
-    }
-    const tileId = Number.parseInt(cells[0]!, 10);
-    if (!Number.isFinite(tileId)) {
-      throw new Error(
-        `game_object_blocks.csv row ${index + 1}: tile id is not numeric (${cells[0]})`
-      );
-    }
+  return splitRows(raw).map((row) => {
+    const rawCells = splitCells(row);
+    
+    // Turn each cell into an integer (using radix 10 for safety)
     return {
-      tileId,
-      objectLabel: cells.slice(3).join(', ').trim()
+      objectLabels: rawCells,
     };
   });
 }
