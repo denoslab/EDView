@@ -33,8 +33,11 @@ export const ZONE_COLORS: Record<ZoneId, string> = {
   hallway: '#C4C6CA',
   minor_injuries_zone: '#BAD0BC',
   major_injuries_zone: '#D6BAB0',
-  trauma_room: '#D4B0BE',
+  trauma_zone: '#D4B0BE',
   diagnostic_room: '#C4BAD0',
+  admission_room: '#C4BAD0',
+  stretcher_zone: '#C4BAD0',
+  fast_track_area: '#C4BAD0',
   exit: '#B0B5BA'
 };
 
@@ -48,8 +51,11 @@ export const ZONE_LABEL_COLORS: Record<ZoneId, string> = {
   hallway: '#33383F',
   minor_injuries_zone: '#1C431E',
   major_injuries_zone: '#571E11',
-  trauma_room: '#521535',
+  trauma_zone: '#521535',
   diagnostic_room: '#3A175D',
+  admission_room: '#3A175D',
+  stretcher_zone: '#3A175D',
+  fast_track_area: '#3A175D',
   exit: '#242B32'
 };
 

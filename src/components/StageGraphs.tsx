@@ -51,16 +51,16 @@ export default function CTASGraphs({ctasData, graphOpen} : {ctasData:CtasStageDa
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
   const [cachedData, setCachedData] = useState<CtasStageData | null>(null);
   const [yMaxByStage, setYMaxByStage] = useState<YMaxMetrics>({});
-  const [requestedSimCode, setRequestedSimCode] = useState<string>('');
+  //const [requestedSimCode, setRequestedSimCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   // Raw Data Modal Hooks
   const [isRawModalOpen, setIsRawModalOpen] = useState<boolean>(false);
-  const [cachedCSVText, setCachedCSVText] = useState<string | null>(null);
-  const [cachedCSVRows, setCachedCSVRows] = useState<string[][] | null>(null);
+  //const [cachedCSVText, setCachedCSVText] = useState<string | null>(null);
+  //const [cachedCSVRows, setCachedCSVRows] = useState<string[][] | null>(null);
   const [showingAllRows, setShowingAllRows] = useState<boolean>(false);
-  const [csvLoading, setCsvLoading] = useState<boolean>(false);
+  //const [csvLoading, setCsvLoading] = useState<boolean>(false);
 
   // Modal Dialog UI Hook
   const [alertState, setAlertState] = useState<AlertConfiguration>({ open: false, message: '' });
@@ -86,13 +86,14 @@ export default function CTASGraphs({ctasData, graphOpen} : {ctasData:CtasStageDa
   };
 
 
+
   // Helper Utilities matching template specifications
-  const formatDisplayName = (rawName: string): string => {
-    if (!rawName) return '';
-    let name: string = rawName.replace(/_\d{8}_\d{6}$/, '');
-    name = name.replace(/[_-]/g, ' ');
-    return name.replace(/\b\w/g, (char) => char.toUpperCase());
-  };
+  // const formatDisplayName = (rawName: string): string => {
+  //   if (!rawName) return '';
+  //   let name: string = rawName.replace(/_\d{8}_\d{6}$/, '');
+  //   name = name.replace(/[_-]/g, ' ');
+  //   return name.replace(/\b\w/g, (char) => char.toUpperCase());
+  // };
 
   const cleanLabels = (bins: string[]): string[] => {
     return bins.map((b) => (typeof b === 'string' ? b.split(/-|–/)[0].trim() : b));
@@ -129,103 +130,107 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
 };
 
   // Deterministic CSV Parser Loop
-  const parseCSV = (text: string): string[][] => {
-    const rows: string[][] = [];
-    let cur: string[] = [];
-    let field = '';
-    let inQuotes = false;
-    let i = 0;
+  // const parseCSV = (text: string): string[][] => {
+  //   const rows: string[][] = [];
+  //   let cur: string[] = [];
+  //   let field = '';
+  //   let inQuotes = false;
+  //   let i = 0;
 
-    while (i < text.length) {
-      const ch = text[i];
-      if (inQuotes) {
-        if (ch === '"') {
-          if (i + 1 < text.length && text[i + 1] === '"') {
-            field += '"';
-            i += 2;
-          } else {
-            inQuotes = false;
-            i++;
-          }
-        } else {
-          field += ch;
-          i++;
-        }
-      } else {
-        if (ch === '"') {
-          inQuotes = true;
-          i++;
-        } else if (ch === ',') {
-          cur.push(field);
-          field = '';
-          i++;
-        } else if (ch === '\r') {
-          i++;
-        } else if (ch === '\n') {
-          cur.push(field);
-          rows.push(cur);
-          cur = [];
-          field = '';
-          i++;
-        } else {
-          field += ch;
-          i++;
-        }
-      }
-    }
-    if (field !== '' || inQuotes || cur.length > 0) {
-      cur.push(field);
-      rows.push(cur);
-    }
-    return rows;
-  };
+  //   while (i < text.length) {
+  //     const ch = text[i];
+  //     if (inQuotes) {
+  //       if (ch === '"') {
+  //         if (i + 1 < text.length && text[i + 1] === '"') {
+  //           field += '"';
+  //           i += 2;
+  //         } else {
+  //           inQuotes = false;
+  //           i++;
+  //         }
+  //       } else {
+  //         field += ch;
+  //         i++;
+  //       }
+  //     } else {
+  //       if (ch === '"') {
+  //         inQuotes = true;
+  //         i++;
+  //       } else if (ch === ',') {
+  //         cur.push(field);
+  //         field = '';
+  //         i++;
+  //       } else if (ch === '\r') {
+  //         i++;
+  //       } else if (ch === '\n') {
+  //         cur.push(field);
+  //         rows.push(cur);
+  //         cur = [];
+  //         field = '';
+  //         i++;
+  //       } else {
+  //         field += ch;
+  //         i++;
+  //       }
+  //     }
+  //   }
+  //   if (field !== '' || inQuotes || cur.length > 0) {
+  //     cur.push(field);
+  //     rows.push(cur);
+  //   }
+  //   return rows;
+  // };
 
   // Unified Mount Init Handler matching data_visualization.html's init()
   useEffect(() => {
-    async function initDashboard(): Promise<void> {
-      const searchParams = new URLSearchParams(window.location.search);
-      const qp = searchParams.get('sim_code');
-      const ls = localStorage.getItem('curr_sim_code');
-      const sim = qp || ls;
+    // async function initDashboard(): Promise<void> {
+    //   const searchParams = new URLSearchParams(window.location.search);
+    //   const qp = searchParams.get('sim_code');
+    //   const ls = localStorage.getItem('curr_sim_code');
+    //   const sim = qp || ls;
 
-      if (!sim) {
-        setErrorMsg('Failed to load data for simulation "null": No simulation selected.');
-        setLoading(false);
-        return;
-      }
+    //   if (!sim) {
+    //     setErrorMsg('Failed to load data for simulation "null": No simulation selected.');
+    //     setLoading(false);
+    //     return;
+    //   }
 
-      setRequestedSimCode(sim);
-      try {
-        localStorage.setItem('curr_sim_code', sim);
-        localStorage.setItem('curr_sim_display_name', sim);
-      } catch (e) {
-        console.warn('LocalStorage mutation restricted');
-      }
+    //   setRequestedSimCode(sim);
+    //   try {
+    //     localStorage.setItem('curr_sim_code', sim);
+    //     localStorage.setItem('curr_sim_display_name', sim);
+    //   } catch (e) {
+    //     console.warn('LocalStorage mutation restricted');
+    //   }
 
-      try {
-        const res = await fetch(`/api/state_times/?sim_code=${encodeURIComponent(sim)}`);
-        if (!res.ok) {
-          let body: any = null;
-          try { body = await res.json(); } catch (e) {}
-          throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
-        }
+    //   try {
+    //     const res = await fetch(`/api/state_times/?sim_code=${encodeURIComponent(sim)}`);
+    //     if (!res.ok) {
+    //       let body: any = null;
+    //       try { body = await res.json(); } catch (e) {}
+    //       throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
+    //     }
         
-        const data: CtasStageData = await res.json();
-        if (!data || Object.keys(data).length === 0) {
-          setErrorMsg(`No data returned for simulation "${sim}".`);
-          setLoading(false);
-          return;
-        }
+    //     const data: CtasStageData = await res.json();
+    //     if (!data || Object.keys(data).length === 0) {
+    //       setErrorMsg(`No data returned for simulation "${sim}".`);
+    //       setLoading(false);
+    //       return;
+    //     }
 
-        setCachedData(data);
-        setYMaxByStage(calculateYMaxByStage(data));
-      } catch (err: any) {
-        setErrorMsg(`Failed to load data for simulation "${sim}": ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-    }
+    //     setCachedData(data);
+    //     setYMaxByStage(calculateYMaxByStage(data));
+    //   } catch (err: any) {
+    //     setErrorMsg(`Failed to load data for simulation "${sim}": ${err.message}`);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // }
     //initDashboard();
+    if (!ctasData || Object.keys(ctasData).length === 0) {
+      setErrorMsg(`No data returned for replay.`);
+      setLoading(false);
+    }
     setCachedData(ctasData);
     setYMaxByStage(calculateYMaxByStage(ctasData));
             setLoading(false);
@@ -251,52 +256,46 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
   }
   
 
-  // View raw payload fetcher mapping to openRawModal() logic
-  const openRawModal = async (): Promise<void> => {
-    if (!requestedSimCode) {
-      showAlert('No simulation selected.');
-      return;
-    }
-    setIsRawModalOpen(true);
+  // // View raw payload fetcher mapping to openRawModal() logic
+  // const openRawModal = async (): Promise<void> => {
+  //   if (!requestedSimCode) {
+  //     showAlert('No simulation selected.');
+  //     return;
+  //   }
+  //   setIsRawModalOpen(true);
 
-    if (!cachedCSVText) {
-      setCsvLoading(true);
-      try {
-        const url = `/api/get_data/?sim_code=${encodeURIComponent(requestedSimCode)}`;
-        const res = await fetch(url);
-        if (!res.ok) {
-          let body: any = null;
-          try { body = await res.json(); } catch (e) {}
-          throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
-        }
-        const text = await res.text();
-        setCachedCSVText(text);
-        setCachedCSVRows(parseCSV(text));
-      } catch (err: any) {
-        console.error(err);
-        showAlert('Failed to load CSV: ' + err.message);
-      } finally {
-        setCsvLoading(false);
-      }
-    }
-  };
+  //   if (!cachedCSVText) {
+  //     setCsvLoading(true);
+  //     try {
+  //       const url = `/api/get_data/?sim_code=${encodeURIComponent(requestedSimCode)}`;
+  //       const res = await fetch(url);
+  //       if (!res.ok) {
+  //         let body: any = null;
+  //         try { body = await res.json(); } catch (e) {}
+  //         throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
+  //       }
+  //       const text = await res.text();
+  //       setCachedCSVText(text);
+  //       setCachedCSVRows(parseCSV(text));
+  //     } catch (err: any) {
+  //       console.error(err);
+  //       showAlert('Failed to load CSV: ' + err.message);
+  //     } finally {
+  //       setCsvLoading(false);
+  //     }
+  //   }
+  // };
 
   // Download raw resource pipeline
   const downloadRawDataCSV = async (): Promise<void> => {
-    if (!requestedSimCode) {
+    if (!ctasData || Object.keys(ctasData).length === 0) {
       showAlert('No simulation selected.');
       return;
     }
-    const url = `/api/get_data/?sim_code=${encodeURIComponent(requestedSimCode)}`;
     try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        let body: any = null;
-        try { body = await res.json(); } catch (e) {}
-        throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
-      }
-      const blob = await res.blob();
-      const filename = `${requestedSimCode}_state_times.csv`;
+
+      const blob = ctasData ? new Blob([JSON.stringify(ctasData, null, 2)], { type: 'application/json' }) : new Blob([], { type: 'application/json' });
+      const filename = `sim_state_times.csv`;
       const a = document.createElement('a');
       const objectUrl = URL.createObjectURL(blob);
       a.href = objectUrl;
@@ -385,7 +384,7 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
           const dataUrl = chartInstance.toBase64Image();
           const resp = await fetch(dataUrl);
           const blob = await resp.blob();
-          const fileName = `${sanitizeFilename(requestedSimCode || 'sim')}_${sanitizeFilename(SLIDE_TITLES[stage])}_${sanitizeFilename(ctas)}.png`;
+          const fileName = `${sanitizeFilename('sim')}_${sanitizeFilename(SLIDE_TITLES[stage])}_${sanitizeFilename(ctas)}.png`;
           stageFolder.file(fileName, blob);
         } catch (err) {
           console.error('Failed to create chart image for', stage, ctas, err);
@@ -398,7 +397,7 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
 
     try {
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const zipName = `${sanitizeFilename(requestedSimCode || 'sim')}_charts.zip`;
+      const zipName = `${sanitizeFilename('sim')}_charts.zip`;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(zipBlob);
       a.download = zipName;
@@ -438,12 +437,12 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
 
   const currentStageData = cachedData?.[currentStage] || {};
   const ctasKeys = Object.keys(currentStageData).sort();
-  const totalCSVRowsCount = cachedCSVRows ? Math.max(0, cachedCSVRows.length - 1) : 0;
+  //const totalCSVRowsCount = cachedCSVRows ? Math.max(0, cachedCSVRows.length - 1) : 0;
   
   // Row partition handling aligning completely with limitRows parsing conditionals
-  const visibleCSVRows = cachedCSVRows 
-    ? (showingAllRows ? cachedCSVRows.slice(1) : cachedCSVRows.slice(1, MAX_ROWS_TO_SHOW + 1)) 
-    : [];
+  // const visibleCSVRows = cachedCSVRows 
+  //   ? (showingAllRows ? cachedCSVRows.slice(1) : cachedCSVRows.slice(1, MAX_ROWS_TO_SHOW + 1)) 
+  //   : [];
 
   return (
     
@@ -472,7 +471,7 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
       </div>
 
       <h2 id="stage-title" className="stage-title" style={{ textAlign: 'center', color: '#24384b', marginTop: '10px' }}>
-        <span className="sim-name" style={{ fontSize: '0.875em', color: '#70a2ff' }}>Simulation: {formatDisplayName(requestedSimCode)}</span>
+        <span className="sim-name" style={{ fontSize: '0.875em', color: '#70a2ff' }}>Simulation Data</span>
         <br />
         <span className="sim-code" style={{ display: 'block', fontSize: '0.675em', fontWeight: 'normal', color: '#cbddff', margin: '10px 0 18px' }}>
           {STAGE_TITLES[currentStage]}
@@ -546,10 +545,10 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
         <div id="rawDataModal" aria-hidden="false" onClick={() => setIsRawModalOpen(false)} style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ width: '100%', maxWidth: '1200px', maxHeight: '82vh', overflow: 'hidden', background: 'white', borderRadius: '12px', padding: '12px', marginBottom: '-48px', boxShadow: '0 12px 36px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '8px 12px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Raw Simulation Data • <span id="modalSimCode">{formatDisplayName(requestedSimCode)}</span></h3>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Raw Simulation Data • <span id="modalSimCode"></span></h3>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button id="downloadRawFromModal" onClick={downloadRawDataCSV} style={{ padding: '6px 12px', borderRadius: '6px', background: 'linear-gradient(135deg, var(--teal-2, #037c6e), var(--teal-3, #036c5f))', color: 'white', border: 'none', cursor: 'pointer' }}>Download CSV</button>
-                {cachedCSVRows && cachedCSVRows.length - 1 > MAX_ROWS_TO_SHOW && (
+                { MAX_ROWS_TO_SHOW && (
                   <button 
                     id="btn-toggle-all-rows" 
                     onClick={() => {
@@ -568,11 +567,11 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
               </div>
             </div>
 
-            <div id="rawDataContent" style={{ overflow: 'auto', padding: '12px 18px 18px', flex: 1, background: '#f7f7f7', borderRadius: '8px', border: '1px solid #e6e6e6' }}>
+            {/* <div id="rawDataContent" style={{ overflow: 'auto', padding: '12px 18px 18px', flex: 1, background: '#f7f7f7', borderRadius: '8px', border: '1px solid #e6e6e6' }}>
               <div id="rawDataInner" style={{ minWidth: '700px' }}>
-                {csvLoading ? (
+                {loading ? (
                   <div style={{ color: '#666' }}>Loading CSV…</div>
-                ) : !cachedCSVRows || cachedCSVRows.length === 0 ? (
+                ) : !cachedCSVRows || ctasData.length === 0 ? (
                   <div style={{ color: '#666' }}>CSV is empty.</div>
                 ) : (
                   <table className="csv-table" style={{ borderCollapse: 'collapse', width: 'max-content', minWidth: '700px', fontSize: '13px', tableLayout: 'auto' }}>
@@ -596,7 +595,7 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
                 )}
               </div>
               <div id="rawDataMsg" style={{ color: '#666', fontSize: '13px', marginTop: '8px' }}>
-                {!csvLoading && cachedCSVRows && (
+                {!loading && (
                   totalCSVRowsCount === 0 
                     ? 'CSV contains only header or is empty.'
                     : showingAllRows 
@@ -604,7 +603,7 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
                       : `Showing first ${Math.min(totalCSVRowsCount, MAX_ROWS_TO_SHOW).toLocaleString()} of ${totalCSVRowsCount.toLocaleString()} data rows. Click "Show all rows" to display everything (may take time).`
                 )}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       )}
