@@ -30,7 +30,7 @@ export type ZoneId =
   | 'hallway'
   | 'minor_injuries_zone'
   | 'major_injuries_zone'
-  | 'trauma_room'
+  | 'trauma_zone'
   | 'fast_track_area'
   | "admission_room"
   | "stretcher_zone"

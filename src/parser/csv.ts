@@ -64,10 +64,16 @@ function splitCells(row: string): string[] {
  * @throws If a row has fewer than 4 cells or a non-numeric tile id.
  */
 export function parseArenaBlocksCSV(raw: string): ArenaBlockRow[] {
+  if (raw.trim().length === 0) {
+  throw new Error(
+    `arena_blocks.csv file is empty`
+    
+  );
+
+  }
   return splitRows(raw).map((row) => {
     const rawCells = splitCells(row);
-    
-    // Turn each cell into an integer (using radix 10 for safety)
+
     return {
       zoneLabels: rawCells,
     };
@@ -88,9 +94,16 @@ export function parseArenaBlocksCSV(raw: string): ArenaBlockRow[] {
  * @throws If a row has fewer than 4 cells or a non-numeric tile id.
  */
 export function parseGameObjectBlocksCSV(raw: string): GameObjectBlockRow[] {
+  if (raw.trim().length === 0) {
+    throw new Error(
+      `game_object_blocks.csv file is empty`
+      
+    );
+
+  }
   return splitRows(raw).map((row) => {
     const rawCells = splitCells(row);
-    
+
     // Turn each cell into an integer (using radix 10 for safety)
     return {
       objectLabels: rawCells,

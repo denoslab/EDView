@@ -93,8 +93,8 @@ export function normaliseZoneId(label: string): ZoneId | undefined {
       return 'minor_injuries_zone';
     case 'major injuries zone':
       return 'major_injuries_zone';
-    case 'trauma room':
-      return 'trauma_room';
+    case 'trauma zone':
+      return 'trauma_zone';
     case 'diagnostic room':
       return 'diagnostic_room';
     case 'exit':
@@ -126,7 +126,7 @@ export function zoneDisplayName(zoneId: ZoneId): string {
       return 'Minor Injuries';
     case 'major_injuries_zone':
       return 'Major Injuries';
-    case 'trauma_room':
+    case 'trauma_zone':
       return 'Trauma';
     case 'diagnostic_room':
       return 'Diagnostics';
@@ -819,7 +819,7 @@ export function buildArenaTileLookup(
       warn(`arena_blocks: unknown zone label "${label}" for tile ${blocks[0].zoneLabels[i]}`);
       continue;
     }
-    lookup.set(arenaDef.data[arenaDef.width * 1 + i] + 1280 , zoneId );
+    lookup.set(arenaDef.data[arenaDef.width  + i] + 1280 , zoneId );
   }
   return lookup;
 }
@@ -842,7 +842,7 @@ export function buildEquipmentLookup(
       warn(`game_object_blocks: unknown object label "${label}" for tile ${blocks[0].objectLabels[i]}`);
       continue;
     }
-    lookup.set(defLayer.data[defLayer.width * 0 + i] + 1280, objectId as EquipmentType);
+    lookup.set(defLayer.data[i] + 1280, objectId as EquipmentType);
   }
   console.log(lookup)
 

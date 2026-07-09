@@ -19,7 +19,7 @@ const TINY_TILED_JSON = {
       type: 'tilelayer',
       width: 1,
       height: 1,
-      data: [1314]
+      data: [1313]
     },
     {
       name: 'Object Interaction Layer',
@@ -59,8 +59,32 @@ const TINY_TILED_JSON = {
   ]
 };
 
-const ARENA_BLOCKS = '1314, ed map, emergency department, triage room\n';
-const GAME_OBJECT_BLOCKS = '1330, ed map, <all>, bed\n';
+const TINY_DEF_JSON = {
+  width: 1,
+  height: 2,
+  tilewidth: 32,
+  tileheight: 32,
+  layers: [
+    {
+      name: 'Object Definition',
+      type: 'tilelayer',
+      width: 1,
+      height: 2,
+      data: [50,0]
+    },
+    {
+      name: 'Arena Definition',
+      type: 'tilelayer',
+      width: 1,
+      height: 2,
+      data: [0,33]
+    },
+
+  ]
+};
+
+const ARENA_BLOCKS = 'waiting room\n';
+const GAME_OBJECT_BLOCKS = 'bed\n';
 const SPAWNING_BLOCKS = '1304, ed map, emergency department, triage room, sp-A\n';
 
 function makeFetch(): typeof fetch {
@@ -78,6 +102,9 @@ function makeFetch(): typeof fetch {
     if (url.endsWith('spawning_location_blocks.csv')) {
       return new Response(SPAWNING_BLOCKS, { status: 200 });
     }
+    if (url.endsWith('tile_definitions.json')) {
+      return new Response(JSON.stringify(TINY_DEF_JSON), { status: 200 });
+    }
     return new Response('not found', { status: 404 });
   });
   return mock as unknown as typeof fetch;
@@ -88,6 +115,7 @@ describe('loadMapLayout', () => {
     const layout = await loadMapLayout({
       mapId: 'tiny',
       tiledJsonUrl: '/maps/tiny/layout.json',
+      definitionUrl: '/maps/tiny/tile_definitions.json',
       arenaBlocksUrl: '/maps/arena_blocks.csv',
       gameObjectBlocksUrl: '/maps/game_object_blocks.csv',
       spawningBlocksUrl: '/maps/spawning_location_blocks.csv',
@@ -96,7 +124,7 @@ describe('loadMapLayout', () => {
 
     expect(layout.mapId).toBe('tiny');
     expect(layout.zones).toHaveLength(1);
-    expect(layout.zones[0]!.zoneId).toBe('triage_room');
+    expect(layout.zones[0]!.zoneId).toBe('waiting_room');
     expect(layout.equipment).toHaveLength(1);
     expect(layout.equipment[0]!.type).toBe('bed');
   });
@@ -111,6 +139,7 @@ describe('loadMapLayout', () => {
         arenaBlocksUrl: '/maps/arena_blocks.csv',
         gameObjectBlocksUrl: '/maps/game_object_blocks.csv',
         spawningBlocksUrl: '/maps/spawning_location_blocks.csv',
+        definitionUrl: '/maps/tiny/tile_definitions.json',
         fetchImpl: failing
       })
     ).rejects.toThrow(/Failed to fetch/);

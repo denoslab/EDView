@@ -12,37 +12,25 @@ import {
 describe('parseArenaBlocksCSV', () => {
   it('decodes the canonical seed file', () => {
     const raw =
-      '1299, ed map, emergency department, minor injuries zone\n' +
-      '1313, ed map, emergency department, waiting room\n' +
-      '1314, ed map, emergency department, triage room\n';
+     'waiting room, triage room, major injuries zone\n';
     const rows = parseArenaBlocksCSV(raw);
     expect(rows).toEqual([
-      { tileId: 1299, zoneLabel: 'minor injuries zone' },
-      { tileId: 1313, zoneLabel: 'waiting room' },
-      { tileId: 1314, zoneLabel: 'triage room' }
+      { zoneLabels: ['waiting room', 'triage room', 'major injuries zone'] }
+
     ]);
   });
 
-  it('strips trailing whitespace and ignores blank lines', () => {
+  it('strips trailing whitespace', () => {
     const raw =
-      '   1350, ed map, emergency department, exit   \n' +
-      '\n' +
-      '1345, ed map, emergency department, trauma room\n\n';
+      '        waiting room, triage room, major injuries zone      \n';
     const rows = parseArenaBlocksCSV(raw);
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toEqual({ tileId: 1350, zoneLabel: 'exit' });
-    expect(rows[1]).toEqual({ tileId: 1345, zoneLabel: 'trauma room' });
-  });
-
-  it('throws on a non-numeric tile id', () => {
-    expect(() =>
-      parseArenaBlocksCSV('abc, ed map, emergency department, exit')
-    ).toThrow(/not numeric/);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({ zoneLabels: ['waiting room', 'triage room', 'major injuries zone'] });
   });
 
   it('throws when a row is too short', () => {
-    expect(() => parseArenaBlocksCSV('1299, ed map, exit')).toThrow(
-      /at least 4 cells/
+    expect(() => parseArenaBlocksCSV(" ")).toThrow(
+
     );
   });
 });
@@ -50,14 +38,11 @@ describe('parseArenaBlocksCSV', () => {
 describe('parseGameObjectBlocksCSV', () => {
   it('decodes the canonical seed file', () => {
     const raw =
-      '1299, ed map, <all>, diagnostic table\n' +
-      '1330, ed map, <all>, bed\n' +
-      '1342, ed map, <all>, waiting room chair\n';
+      'bed, medical equipment, chair\n';
     const rows = parseGameObjectBlocksCSV(raw);
     expect(rows).toEqual([
-      { tileId: 1299, objectLabel: 'diagnostic table' },
-      { tileId: 1330, objectLabel: 'bed' },
-      { tileId: 1342, objectLabel: 'waiting room chair' }
+      { objectLabels: ['bed', 'medical equipment', 'chair'] }
+
     ]);
   });
 });

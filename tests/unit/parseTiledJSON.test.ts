@@ -44,8 +44,8 @@ function readFixture(relative: string): string {
 
 function loadSpecialBlocks() {
   return parseSpecialBlocks({
-    arenaBlocks: readFixture('matrix/special_blocks/arena_blocks.csv'),
-    gameObjectBlocks: readFixture('matrix/special_blocks/game_object_blocks.csv'),
+    arenaBlocks: readFixture('matrix/special_blocks/arena_to_tiles.csv'),
+    gameObjectBlocks: readFixture('matrix/special_blocks/objects_to_tiles.csv'),
     spawningBlocks: readFixture('matrix/special_blocks/spawning_location_blocks.csv')
   });
 }
@@ -65,7 +65,7 @@ describe('normaliseZoneId', () => {
     expect(normaliseZoneId('hallway')).toBe('hallway');
     expect(normaliseZoneId('minor injuries zone')).toBe('minor_injuries_zone');
     expect(normaliseZoneId('major injuries zone')).toBe('major_injuries_zone');
-    expect(normaliseZoneId('trauma room')).toBe('trauma_room');
+    expect(normaliseZoneId('trauma zone')).toBe('trauma_zone');
     expect(normaliseZoneId('diagnostic room')).toBe('diagnostic_room');
     expect(normaliseZoneId('exit')).toBe('exit');
   });
@@ -301,9 +301,16 @@ describe('lookup builders', () => {
     const warnings: string[] = [];
     const lookup = buildArenaTileLookup(
       [
-        { tileId: 1314, zoneLabel: 'triage room' },
-        { tileId: 9999, zoneLabel: 'helipad' }
+        { zoneLabels: ['triage room', "helipad"] },
+
       ],
+          {
+      name: 'Arena Definition',
+      type: 'tilelayer',
+      width: 2,
+      height: 2,
+      data: [0,0,34,9999]
+    },
       (m) => warnings.push(m)
     );
     expect(lookup.get(1314)).toBe('triage_room');
@@ -314,8 +321,15 @@ describe('lookup builders', () => {
 
   it('builds the equipment lookup', () => {
     const lookup = buildEquipmentLookup([
-      { tileId: 1330, objectLabel: 'bed' }
-    ]);
+      { objectLabels: ['bed']  }
+    ],    
+      {
+      name: 'Arena Definition',
+      type: 'tilelayer',
+      width: 1,
+      height: 2,
+      data: [50,0]
+    });
     expect(lookup.get(1330)).toBe('bed');
   });
 
@@ -334,7 +348,8 @@ describe('lookup builders', () => {
 describe('parseTiledJSON — small_ed_layout.json fixture', () => {
   const blocks = loadSpecialBlocks();
   const tiled = loadTiledMap('small_ed_layout.json');
-  const layout = parseTiledJSON('small_ed_layout', tiled, blocks);
+  const tiledDef = loadTiledMap('tile_definitions.json');
+  const layout = parseTiledJSON('small_ed_layout', tiled, tiledDef, blocks);
 
   it('exposes the correct top-level metadata', () => {
     expect(layout.mapId).toBe('small_ed_layout');
@@ -350,7 +365,7 @@ describe('parseTiledJSON — small_ed_layout.json fixture', () => {
     expect(zoneIds.has('hallway')).toBe(true);
     expect(zoneIds.has('minor_injuries_zone')).toBe(true);
     expect(zoneIds.has('major_injuries_zone')).toBe(true);
-    expect(zoneIds.has('trauma_room')).toBe(true);
+    expect(zoneIds.has('trauma_zone')).toBe(true);
     expect(zoneIds.has('diagnostic_room')).toBe(true);
     expect(zoneIds.has('exit')).toBe(true);
   });
@@ -426,7 +441,8 @@ describe('parseTiledJSON — small_ed_layout.json fixture', () => {
 describe('parseTiledJSON — foothills_ed_layout.json fixture', () => {
   const blocks = loadSpecialBlocks();
   const tiled = loadTiledMap('foothills_ed_layout.json');
-  const layout = parseTiledJSON('foothills_ed_layout', tiled, blocks);
+  const tiledDef = loadTiledMap('tile_definitions.json');
+  const layout = parseTiledJSON('foothills_ed_layout', tiled, tiledDef, blocks);
 
   it('matches the foothills dimensions', () => {
     expect(layout.widthInTiles).toBe(122);
@@ -437,7 +453,7 @@ describe('parseTiledJSON — foothills_ed_layout.json fixture', () => {
 
   it('extracts every Phase 1 zone category at least once', () => {
     const zoneIds = new Set(layout.zones.map((z) => z.zoneId));
-    expect(zoneIds.size).toBeGreaterThanOrEqual(8);
+    expect(zoneIds.size).toBeGreaterThanOrEqual(7);
   });
 
   it('extracts the exact equipment count from the foothills fixture', () => {

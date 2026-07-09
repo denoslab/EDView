@@ -65,7 +65,9 @@ export function validateMovment(movementFile:MovementFile){
             throw new Error("agents missing or not an object");
         }
         else{
-
+            if(Object.keys(r.agents).length === 0){
+                throw new Error("agents object cannot be empty");
+            }
         }
           
       return movementFile as MovementFile;
