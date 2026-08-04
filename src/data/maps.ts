@@ -20,7 +20,7 @@ import smallEdJsonUrl from '@maps/visuals/small_ed_layout.json?url';
 import rockyviewEDJsonUrl from '@maps/visuals/rockyview_ed_layout.json?url';
 import def from '@maps/visuals/tile_definitions.json?url';
 
-//import foothillsJsonUrl from '@maps/visuals/foothills_ed_layout.json?url';
+import foothillsJsonUrl from '@maps/visuals/foothills_ed_layout.json?url';
 import arenaBlocksUrl from '@maps/matrix/special_blocks/arena_to_tiles.csv?url';
 import gameObjectBlocksUrl from '@maps/matrix/special_blocks/objects_to_tiles.csv?url';
 import spawningBlocksUrl from '@maps/matrix/special_blocks/spawning_location_blocks.csv?url';
@@ -69,18 +69,19 @@ export const MAP_CATALOGUE: MapCatalogueEntry[] = [
       definitionUrl: def
     }
   },
-  // {
-  //   id: 'foothills_ed_layout',
-  //   displayName: 'Foothills ED Layout',
-  //   description: '122 × 123 high-fidelity reproduction of the Foothills ED.',
-  //   load: {
-  //     mapId: 'foothills_ed_layout',
-  //     tiledJsonUrl: foothillsJsonUrl,
-  //     arenaBlocksUrl,
-  //     gameObjectBlocksUrl,
-  //     spawningBlocksUrl
-  //   }
-  // }
+  {
+    id: 'foothills_ed_layout',
+    displayName: 'Foothills ED Layout',
+    description: '122 × 123 high-fidelity reproduction of the Foothills ED.',
+    load: {
+      mapId: 'foothills_ed_layout',
+      tiledJsonUrl: foothillsJsonUrl,
+      arenaBlocksUrl,
+      gameObjectBlocksUrl,
+      spawningBlocksUrl,
+      definitionUrl: def
+    }
+  }
 ];
 
 /**

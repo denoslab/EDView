@@ -38,7 +38,7 @@ export async function startLiveMap(): Promise<initialState> {
 export async function isSimulationUp(): Promise<boolean>{
   try{
   const res = await fetch("http://localhost:5000/initial_state/", {
-    signal: AbortSignal.timeout(500) 
+    signal: AbortSignal.timeout(1500) 
   });
   return res.ok;
   } catch (error: any){
