@@ -56,7 +56,7 @@ export function LiveInfoBar({ meta, step }: { meta: MetaMovementFile, step: numb
       Step:
       <span data-testid="step">{step ? step : 'null'}</span> |
       Percentage Completed:
-      <span data-testid="Percent">{percentageComplete < 100 ? percentageComplete : 100 }%</span>
+      <span data-testid="Percent">{(percentageComplete < 100 ? percentageComplete : 100).toFixed(2) }%</span>
     </div>
   );
 }
