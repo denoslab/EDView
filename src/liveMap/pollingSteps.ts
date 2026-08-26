@@ -18,10 +18,9 @@ export function useLiveMovement (pollingForState: boolean, step: number, setStep
     const query = useQuery({
         queryKey: ['liveData'],
         queryFn: () => fetchLivePositions(step),
-        refetchInterval: pollingForState ? 250 : pollingSpeed, // Stops polling when isLive is false
+        refetchInterval: pollingForState ? pollingSpeed : false, // Stops polling when isLive is false
         enabled: pollingForState
     });
-    console.log("Step", step)
     const data = query.data;
     
     if(query.isSuccess){
