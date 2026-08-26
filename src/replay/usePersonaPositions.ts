@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import type { ExpandedFrame } from "./expandFrames";
 import type { PersonaRole, ReplayPersona, ReplayPersonaFinalState } from "./types";
+import { useAnimationClock } from "./useAnimationClock";
 
 export interface PersonaState {
   id: string;
@@ -42,25 +43,30 @@ export function usePersonaPositions(args: {
   collisionMask: boolean[][]
   playbackType: string;
 }): Record<string, PersonaState> {
-  if (args.playbackType === "live") {
-    return livePositions(args);
-  }
-  else{
+  const animationNeeded = args.playbackType === "replay";
+  const dtRef = useAnimationClock(animationNeeded);
 
-    return replayPositions(args);
+  const livePositions = useLivePositions(args);
+  const replayPositions = useReplayPositions(args, dtRef);
+  if (args.playbackType === "live") {
+    return livePositions;
   }
+  return replayPositions;
+  
 
 
 }
 
 
-function replayPositions(args: {
+function useReplayPositions(args: {
   expanded: ExpandedFrame[];
   personas: ReplayPersona[];
   currentStep: number;
   interpAlpha: number;
   collisionMask: boolean[][]
-}): Record<string, PersonaState> {
+  
+}, dtRef: React.MutableRefObject<number>): Record<string, PersonaState> {
+  
   const personaIndex = useMemo(() => {
     const map = new Map<string, ReplayPersona>();
     for (const p of args.personas) map.set(p.id, p);
@@ -90,6 +96,9 @@ return useMemo(() => {
   const personaPositions = personaPositionsRef.current;
   const personaProgress = personaProgressRef.current;
 
+  const TILES_PER_SECOND = 20; // tune to taste
+  // const dtRef = useAnimationClock(); // Already passed in args
+
   const out: Record<string, PersonaState> = {};
   for (const [id, delta] of Object.entries(cur.agents)) {
     const meta = personaIndex.get(id);
@@ -116,10 +125,10 @@ return useMemo(() => {
     let toY = fromY;
     let progress = personaProgress.get(id) ?? 0;
 
-    if (path && path.length > 0) {
-      // Increment progress by 1/MOVEMENT_SPEED per frame
-      progress += 1 / 8; // Adjust this divisor to change movement speed (lower = faster)
 
+    if (path && path.length > 0) {
+      // Increment progress based on elapsed time and movement speed
+      progress += (dtRef.current / 1000) * TILES_PER_SECOND;
       if (progress >= 1) {
         // Move to next step
         const nextStep = path.shift();
@@ -133,13 +142,15 @@ return useMemo(() => {
           progress = 0;
           personaPaths.set(id, path);
         }
-      } else {
+      }
+      else {
         // Interpolate between current and next step
         const currentStep = path[0];
         const prevPos = personaPositions.get(id) || { x: fromX, y: fromY };
         toX = prevPos.x + (currentStep.x - prevPos.x) * progress;
         toY = prevPos.y + (currentStep.y - prevPos.y) * progress;
       }
+      
 
       personaProgress.set(id, progress);
     }
@@ -180,7 +191,7 @@ return useMemo(() => {
 
 
 
-function livePositions(args: {
+function useLivePositions(args: {
   expanded: ExpandedFrame[];
   personas: ReplayPersona[];
   currentStep: number;
