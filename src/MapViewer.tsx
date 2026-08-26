@@ -79,6 +79,11 @@ export function MapViewer() {
   useEffect(loadMap, [selected]);
 
   useEffect(()=> {
+
+    if(replay){
+      return;
+    }
+
     const fetchSimulationState = () =>{
       isSimulationUp().then((result) => {
       console.log("Simulation Running",result);
@@ -127,7 +132,7 @@ export function MapViewer() {
   };
 
   const startReplay = () => {
-                      
+    setLiveMapActive(false)
     setIsSidebarOpen(false);
     if(!replay){
     resetPage();
@@ -239,7 +244,7 @@ export function MapViewer() {
     interpAlpha: playback.interpAlpha,
     collisionMask: state.kind === 'ready' ? state.layout.collisionMask : [],
     playbackType: state.kind === 'ready' ? state.playbackType : ""
-  }), [currentExpanded, step, replay, state, playback.currentStep]);
+  }), [currentExpanded, step, replay, state, playback.currentStep, playback.interpAlpha]);
 
   // 2. Pass the memoized object to your hook
   const personas = usePersonaPositions(personaOptions);
@@ -388,10 +393,9 @@ export function MapViewer() {
                     style={{color: `${replay ? 'white' : 'black'}`}}>To load your own replay, drag and drop the replay file.</span>
                   </button>
 
-                  <h2></h2>
                   <button
                     style={{color: "black", backgroundColor: simulationRunning ? (liveMapActive ? "#2d6cdf" : "#d5deee") : "#eed5d5",
-                           
+                           marginTop: '10px',
                     }}
                     type="button"
                     className={simulationRunning ? `sidebar-list-item active` : "inactive-button"}

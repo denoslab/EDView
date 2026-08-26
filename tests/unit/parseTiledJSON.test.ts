@@ -228,7 +228,7 @@ describe('extractWallSegments', () => {
     expect(horizontals).toHaveLength(1);
     expect(horizontals).toEqual(
       expect.arrayContaining([
-        { orientation: 'horizontal', x1: 0, y1: 0, x2: 3, y2: 0, type: 'wall', validDecorationRotation: "top_edge" },
+        { length: 1, rotation: 0, orientation: 'horizontal', x1: 0, y1: 0, x2: 3, y2: 0, type: 'wall', validDecorationRotation: "top_edge" },
         
       ])
     );
@@ -271,10 +271,10 @@ describe('extractWallSegments', () => {
     expect(segments).toHaveLength(4);
     expect(segments).toEqual(
       expect.arrayContaining([
-        { orientation: 'horizontal', x1: 1, y1: 1, x2: 2, y2: 1, type: 'wall',  validDecorationRotation: "top_edge" },
-        { orientation: 'horizontal', x1: 1, y1: 2, x2: 2, y2: 2, type: 'wall', validDecorationRotation: "interior" },
-        { orientation: 'vertical', x1: 1, y1: 1, x2: 1, y2: 2, type: 'wall', validDecorationRotation: "left_edge" },
-        { orientation: 'vertical', x1: 2, y1: 1, x2: 2, y2: 2, type: 'wall', validDecorationRotation: "interior" }
+        { rotation: 0, length: 1, orientation: 'horizontal', x1: 1, y1: 1, x2: 2, y2: 1, type: 'wall',  validDecorationRotation: "top_edge" },
+        { rotation: 0, length: 1, orientation: 'horizontal', x1: 1, y1: 2, x2: 2, y2: 2, type: 'wall', validDecorationRotation: "interior" },
+        { rotation: Math.PI / 2, length: 1, orientation: 'vertical', x1: 1, y1: 1, x2: 1, y2: 2, type: 'wall', validDecorationRotation: "left_edge" },
+        { rotation: Math.PI / 2, length: 1, orientation: 'vertical', x1: 2, y1: 1, x2: 2, y2: 2, type: 'wall', validDecorationRotation: "right_edge" }
       ])
     );
   });
@@ -506,8 +506,15 @@ describe('extractEquipment / extractSpawningLocations', () => {
       height: 1,
       data: [1330, 0, 9999]
     };
+    const collision: TiledLayer = {
+      name: 'Collisions',
+      type: 'tilelayer',
+      width: 3,
+      height: 1,
+      data: [0, 0, 0]
+    };
     const eqLookup = new Map([[1330, 'bed' as const]]);
-    const equipment = extractEquipment(layer, eqLookup, graphic);
+    const equipment = extractEquipment(layer, eqLookup, graphic, collision);
     expect(equipment).toHaveLength(1);
     expect(equipment[0]).toMatchObject({
       type: 'bed',

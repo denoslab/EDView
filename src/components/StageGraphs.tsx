@@ -129,104 +129,9 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
   return result;
 };
 
-  // Deterministic CSV Parser Loop
-  // const parseCSV = (text: string): string[][] => {
-  //   const rows: string[][] = [];
-  //   let cur: string[] = [];
-  //   let field = '';
-  //   let inQuotes = false;
-  //   let i = 0;
-
-  //   while (i < text.length) {
-  //     const ch = text[i];
-  //     if (inQuotes) {
-  //       if (ch === '"') {
-  //         if (i + 1 < text.length && text[i + 1] === '"') {
-  //           field += '"';
-  //           i += 2;
-  //         } else {
-  //           inQuotes = false;
-  //           i++;
-  //         }
-  //       } else {
-  //         field += ch;
-  //         i++;
-  //       }
-  //     } else {
-  //       if (ch === '"') {
-  //         inQuotes = true;
-  //         i++;
-  //       } else if (ch === ',') {
-  //         cur.push(field);
-  //         field = '';
-  //         i++;
-  //       } else if (ch === '\r') {
-  //         i++;
-  //       } else if (ch === '\n') {
-  //         cur.push(field);
-  //         rows.push(cur);
-  //         cur = [];
-  //         field = '';
-  //         i++;
-  //       } else {
-  //         field += ch;
-  //         i++;
-  //       }
-  //     }
-  //   }
-  //   if (field !== '' || inQuotes || cur.length > 0) {
-  //     cur.push(field);
-  //     rows.push(cur);
-  //   }
-  //   return rows;
-  // };
-
   // Unified Mount Init Handler matching data_visualization.html's init()
   useEffect(() => {
-    // async function initDashboard(): Promise<void> {
-    //   const searchParams = new URLSearchParams(window.location.search);
-    //   const qp = searchParams.get('sim_code');
-    //   const ls = localStorage.getItem('curr_sim_code');
-    //   const sim = qp || ls;
 
-    //   if (!sim) {
-    //     setErrorMsg('Failed to load data for simulation "null": No simulation selected.');
-    //     setLoading(false);
-    //     return;
-    //   }
-
-    //   setRequestedSimCode(sim);
-    //   try {
-    //     localStorage.setItem('curr_sim_code', sim);
-    //     localStorage.setItem('curr_sim_display_name', sim);
-    //   } catch (e) {
-    //     console.warn('LocalStorage mutation restricted');
-    //   }
-
-    //   try {
-    //     const res = await fetch(`/api/state_times/?sim_code=${encodeURIComponent(sim)}`);
-    //     if (!res.ok) {
-    //       let body: any = null;
-    //       try { body = await res.json(); } catch (e) {}
-    //       throw new Error(body && body.error ? body.error : `HTTP ${res.status}`);
-    //     }
-        
-    //     const data: CtasStageData = await res.json();
-    //     if (!data || Object.keys(data).length === 0) {
-    //       setErrorMsg(`No data returned for simulation "${sim}".`);
-    //       setLoading(false);
-    //       return;
-    //     }
-
-    //     setCachedData(data);
-    //     setYMaxByStage(calculateYMaxByStage(data));
-    //   } catch (err: any) {
-    //     setErrorMsg(`Failed to load data for simulation "${sim}": ${err.message}`);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // }
-    //initDashboard();
     if (!ctasData || Object.keys(ctasData).length === 0) {
       setErrorMsg(`No data returned for replay.`);
       setLoading(false);
@@ -235,7 +140,7 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
     setYMaxByStage(calculateYMaxByStage(ctasData));
             setLoading(false);
 
-  }, []);
+  }, [ctasData]);
 
   // Keyboard navigation capturing right/left arrow triggers
   useEffect(() => {
@@ -304,9 +209,10 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
       a.click();
       a.remove();
       URL.revokeObjectURL(objectUrl);
-    } catch (err: any) {
-      console.error('Failed to download raw CSV:', err);
-      showAlert('Failed to download raw CSV: ' + err.message);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to download raw CSV:', error);
+      showAlert('Failed to download raw CSV: ' + error.message);
     }
   };
 
@@ -405,7 +311,8 @@ const calculateYMaxByStage = (data: CtasStageData): YMaxMetrics => {
       a.click();
       a.remove();
       URL.revokeObjectURL(a.href);
-    } catch (e: any) {
+    } catch (err) {
+      const e = err as Error;
       console.error('Failed to generate ZIP:', e);
       showAlert('Failed to create ZIP of charts: ' + e.message);
     }

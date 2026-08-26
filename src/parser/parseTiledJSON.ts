@@ -460,7 +460,8 @@ function simplifyCollinear(polygon: TilePoint[]): TilePoint[] {
 export function extractEquipment(
   layer: TiledLayer,
   equipmentLookup: Map<number, EquipmentType>,
-  graphic: TiledLayer
+  graphic: TiledLayer,
+  collision: TiledLayer
 ): EquipmentPlacement[] {
   const out: EquipmentPlacement[] = [];
   for (let y = 0; y < layer.height; y++) {
@@ -477,13 +478,14 @@ export function extractEquipment(
       if (rotationID > 3000000000) {
         rotation_offset = -Math.PI *2;
       }
-      else if (rotationID > 2000000000) {
+      else if (rotationID > 2000000000 || tileAt(collision, x, y + 1) !== 0) {
         rotation_offset = -Math.PI / 2;
       }
 
-      else if (rotationID > 1000000000) {
+      else if (rotationID > 1000000000 || tileAt(collision, x, y - 1) !== 0) {
         rotation_offset = Math.PI / 2;
       }
+      
       
       out.push({
         equipmentId: `${type}-${x}-${y}`,
@@ -562,9 +564,41 @@ export function extractSpawningLocations(
  */
 export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallSegment[] {
   const isWall = (x: number, y: number): boolean => {
-    if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false;
+    // If outside map bounds, treat as solid boundary wall
+    if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false; 
     return (layer.data[y * layer.width + x] ?? 0) !== 0;
   };
+
+  // Helper function to calculate rotation based on neighboring wall grid topology
+  function getSegmentRotation(x: number, yStart: number, yEnd: number, isWallFn = isWall): { rotation: number, length: number } {
+    const isSingleBlock = (yEnd - yStart === 1);
+    
+    if (isSingleBlock) {
+
+
+      const y = yStart;
+      const length = 1.5;
+
+      if (isWallFn(x, y + 1) || isWallFn(x, y - 1)) {
+       return { rotation: Math.PI / 2, length: 1 };  // Vertical wall 
+      }
+
+      // Check top-left to bottom-right diagonal (\)
+      const hasTLBR = isWallFn(x - 1, y - 1) || isWallFn(x + 1, y + 1);
+      // Check bottom-left to top-right diagonal (/)
+      const hasBLTR = isWallFn(x - 1, y + 1) || isWallFn(x + 1, y - 1);
+
+      if (hasTLBR && !hasBLTR) {
+        return { rotation:  - Math.PI / 4, length: length };  // -45 degrees
+      }
+      else{
+        return { rotation: Math.PI / 4, length: length }; // 45 degrees
+      }
+    }
+
+    // Default vertical wall rotation (90 degrees)
+    return { rotation: Math.PI / 2, length: 1 };
+  }
 
   // Collect perimeter-edge cells. Horizontal edges are keyed by the tile-edge
   // y-value; the set holds tile columns `x` where a horizontal edge runs from
@@ -591,11 +625,23 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
   for (let y = 0; y < layer.height; y++) {
     for (let x = 0; x < layer.width; x++) {
-      if (!isWall(x, y)) continue;
 
 
-      if (!isWall(x + 1, y) && !isWall(x - 1, y )) {
+      if (!isWall(x, y)) {
+
+        continue;
+      };
+
+
+
+      // if (isWall(x- 1, y + 1) && isWall(x + 1, y + 1)) {
+      //   wallOrientation = "Horizontal"
+      //   addHorizontal(y, x); // Horizontal wall
+      // }
+
+     if (!isWall(x + 1, y) && !isWall(x - 1, y )) {
         addVertical(x, y); // Vertical wall
+        
       } 
       else if (isWall(x, y + 1) && isWall(x + 1, y)) {
         addVertical(x, y); // Vertical wall
@@ -603,6 +649,14 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       else if (isWall(x, y + 1) && isWall(x - 1, y)) {
         addVertical(x, y); // Vertical wall
       }
+      // else if (isWall(x -1, y - 1) && !isWall(x + 1, y + 1)) {
+      //   addVertical(x, y-1); // Vertical wall
+      // }
+      // else if (isWall(x + 1, y - 1) && !isWall(x - 1, y + 1)) {
+      //   addVertical(x, y-1); // Vertical wall
+      //   addHorizontal(y - 1, x); // Vertical wall
+      // }
+
 
 
 
@@ -615,11 +669,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         addHorizontal(y, x); 
       }
       if (isWall(x, y - 1) && isWall(x + 1, y)) {
-        addHorizontal(y, x); // Left edge
-                //addVertical(x, y);
-
+        addHorizontal(y, x); 
       }
-
     }
   }
 
@@ -630,6 +681,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
     const xs = Array.from(horizontalEdges.get(y)!).sort((a, b) => a - b);
     let runStart: number | null = null;
     let runEnd = 0;
+
     for (const x of xs) {
       let validDecorationRotation = "interior";
 
@@ -651,6 +703,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
           x2: runEnd,
           y2: y,
           type: 'wall',
+          rotation: 0,
+          length: 1,
           validDecorationRotation: validDecorationRotation
         });
 
@@ -662,6 +716,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
             x2: x,        // Ends where the next wall starts
             y2: y,
             type: 'doorway',
+            rotation: 0,
+            length: 1,
             validDecorationRotation: "none"
           });
         }
@@ -687,6 +743,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         x2: runEnd,
         y2: y,
         type: 'wall',
+        rotation: 0,
+        length: 1,
         validDecorationRotation: validDecorationRotation
 
       });
@@ -695,20 +753,17 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
   // Merge consecutive vertical edges sharing the same x value into runs.
   const sortedXs = Array.from(verticalEdges.keys()).sort((a, b) => a - b);
+
   for (const x of sortedXs) {
     const ys = Array.from(verticalEdges.get(x)!).sort((a, b) => a - b);
     let runStart: number | null = null;
     let runEnd = 0;
-    
+
     for (const y of ys) {
       let validDecorationRotation = "interior";
-
       if (tileAt(arena, x, y) === 0) {
         const half = layer.width / 2;
-
-        if (x < half)      validDecorationRotation = "left_edge";
-        else if (x > half) validDecorationRotation = "right_edge";
-
+        validDecorationRotation = x < half ? "left_edge" : "right_edge";
       }
 
       if (runStart === null) {
@@ -717,29 +772,33 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       } else if (y === runEnd) {
         runEnd = y + 1;
       } else {
-        const oneWall = (runStart - runEnd) === -1
+        // 1. Calculate rotation using runStart/runEnd bounds
+        const { rotation, length } = getSegmentRotation(x, runStart, runEnd, isWall);
+
         segments.push({
           orientation: 'vertical',
           x1: x,
           y1: runStart,
           x2: x,
           y2: runEnd,
-          type: oneWall ? 'diag' : 'wall',
-          validDecorationRotation: validDecorationRotation
-
+          type: 'wall',
+          rotation,
+          length,
+          validDecorationRotation
         });
 
-
-        if (y - runEnd === 1) {
+        if (y - runEnd === 1 && !isWall(x - 1, runEnd) && !isWall(x + 1, runEnd) ) {
+          
           segments.push({
             orientation: 'vertical',
-            x1: x,   // Starts where the last wall ended
+            x1: x,
             y1: runEnd,
-            x2: x,        // Ends where the next wall starts
+            x2: x,
             y2: y,
             type: 'doorway',
+            rotation: Math.PI / 2,
+            length: 1,
             validDecorationRotation: "none"
-
           });
         }
 
@@ -748,15 +807,17 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       }
     }
 
+    // Trailing segment check
     if (runStart !== null) {
       let validDecorationRotation = "interior";
-
-      if (tileAt(arena, x-1, runStart) === 0 || tileAt(arena, x+1, runStart) === 0) {
+      if (tileAt(arena, x - 1, runStart) === 0 || tileAt(arena, x + 1, runStart) === 0) {
         const half = layer.width / 2;
-        if (x < half)          validDecorationRotation = "left_edge";
-        else if (x > half) validDecorationRotation = "right_edge";
+        validDecorationRotation = x < half ? "left_edge" : "right_edge";
       }
-      
+
+      // 2. Calculate rotation for the final run
+      const { rotation, length } = getSegmentRotation(x, runStart, runEnd, isWall);
+
       segments.push({
         orientation: 'vertical',
         x1: x,
@@ -764,8 +825,9 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         x2: x,
         y2: runEnd,
         type: 'wall',
-        validDecorationRotation: validDecorationRotation
-
+        rotation,
+        length,
+        validDecorationRotation
       });
     }
   }
@@ -773,6 +835,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
   return segments;
 }
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -915,7 +978,7 @@ export function parseTiledJSON(
     heightInTiles: tiled.height,
     tileSizePx: tiled.tilewidth,
     zones: extractZoneRegions(arenaLayer, arenaLookup),
-    equipment: extractEquipment(objectLayer, equipmentLookup, graphicLayer),
+    equipment: extractEquipment(objectLayer, equipmentLookup, graphicLayer, collisionsLayer),
     spawningLocations: extractSpawningLocations(spawningLayer, spawningLookup),
     walls: extractWallSegments(wallsLayer, arenaLayer),
     collisionMask: extractCollisionMask(collisionsLayer)

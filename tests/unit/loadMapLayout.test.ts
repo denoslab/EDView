@@ -88,7 +88,7 @@ const GAME_OBJECT_BLOCKS = 'bed\n';
 const SPAWNING_BLOCKS = '1304, ed map, emergency department, triage room, sp-A\n';
 
 function makeFetch(): typeof fetch {
-  const mock = vi.fn(async (input: RequestInfo | URL) => {
+  const mock = vi.fn(async (input: URL) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.endsWith('layout.json')) {
       return new Response(JSON.stringify(TINY_TILED_JSON), { status: 200 });

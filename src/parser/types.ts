@@ -170,6 +170,8 @@ export interface SpawningLocation {
  * row `r` running from column `a` to column `b` has `y1 === y2 === r` and
  * `x1 === a, x2 === b + 1`.
  */
+
+
 export interface WallSegment {
   /** Orientation of the segment. */
   orientation: 'horizontal' | 'vertical';
@@ -179,7 +181,9 @@ export interface WallSegment {
   /** End point in tile-edge coordinates. */
   x2: number;
   y2: number;
-  type: 'wall' | 'doorway' | 'diag';
+  type: 'wall' | 'doorway';
+  rotation: number;
+  length: number;
   validDecorationRotation: string;
 }
 

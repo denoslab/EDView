@@ -1,6 +1,6 @@
 import type { PlaybackController, PlaybackSpeed } from "@/replay/usePlayback";
 
-const SPEEDS: PlaybackSpeed[] = [1, 4, 16, 64];
+const SPEEDS: PlaybackSpeed[] = [8, 16, 64];
 
 export function PlaybackBar({ ctrl, simTime }: { ctrl: PlaybackController; simTime?: string }) {
   return (
