@@ -5,6 +5,7 @@ const COLORS: Record<PersonaRole, string> = {
   Doctor: "#2D6CDF",
   TriageNurse: "#F2A92F",
   BedsideNurse: "#2EA86E",
+  AdmissionClerk: "#8E5BD9",
   Unknown: "#888888",
 };
 

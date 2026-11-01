@@ -20,18 +20,18 @@
  * @packageDocumentation
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree, extend, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import {Texture, Object3D, Group, SRGBColorSpace, Mesh, MeshPhongMaterial, DoubleSide, Camera, NoToneMapping} from 'three';
+import {Texture, Object3D, Group, SRGBColorSpace, Mesh, MeshPhongMaterial, DoubleSide, Camera, NoToneMapping, ColorRepresentation, Material} from 'three';
 import { TextureLoader } from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { Text } from 'troika-three-text';
 import type { MapLayout, EquipmentPlacement, ZoneRegion, WallDecorationType } from '@/parser/types';
 import type { PersonaState } from '@/replay/usePersonaPositions';
 import { AgentLayer } from './AgentLayer';
-import { CANVAS_BACKGROUND_COLOR } from '@/theme/colors';
+import { CANVAS_BACKGROUND_COLOR, ZONE_COLORS } from '@/theme/colors';
 
 import { seededRandom } from 'three/src/math/MathUtils.js';
 
@@ -137,13 +137,18 @@ const FBX_SCALE = 0.001;
  * - Clinical rooms → beige ward floor
  * - Hallway → office floor (neutral)
  */
-function floorModelForZone(zoneId: string): string {
+function floorModelForZone(zoneId: string): string | null {
   switch (zoneId) {
     case 'waiting_room':
       return `${base}models/hospital/floor_reception.fbx`;
     case 'hallway':
     case 'exit':
-      return `null`;
+      // No floor model for these zones. This must be the value `null`, not
+      // the string "null": a "null" URL is fetched, the dev server answers it
+      // with index.html via the SPA fallback, and FBXLoader then throws
+      // "Cannot find the version number for the file given." once per
+      // hallway/exit zone region.
+      return null;
     default:
       return `${base}models/hospital/floor_ward.fbx`;
   }
@@ -155,9 +160,37 @@ function floorModelForZone(zoneId: string): string {
  * Each floor FBX is a 1m×1m (or 2m×2m) tile. We load it once and
  * clone it across the zone's bounding box.
  */
+
+function applyZoneColor(model: Object3D, hexColor: ColorRepresentation): void {
+  model.traverse((child: Object3D) => {
+    // Narrow down type to THREE.Mesh
+    if ((child as Mesh).isMesh) {
+      const mesh = child as Mesh;
+      if (mesh.material) {
+        // Handle both single Material and Material[] (multi-materials)
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map((mat) => {
+            const clonedMat = mat.clone();
+            if ('color' in clonedMat) {
+              (clonedMat as Material & { color: { set: (c: ColorRepresentation) => void } }).color.set(hexColor);
+            }
+            return clonedMat;
+          });
+        } else {
+          mesh.material = mesh.material.clone();
+          if ('color' in mesh.material) {
+            (mesh.material as Material & { color: { set: (c: ColorRepresentation) => void } }).color.set(hexColor);
+          }
+        }
+      }
+    }
+  });
+}
+
 function ZoneFloor({ zone }: { zone: ZoneRegion }) {
   const floorUrl = floorModelForZone(zone.zoneId);
   const floorModel = useFBXModel(floorUrl);
+
 
   const tileSetLookup = useMemo(() => {
     const s = new Set<string>();
@@ -194,7 +227,9 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
       }
       else if (startZ !== null) {
         // Handle the case where we're at the end of a contiguous area
+        const color = ZONE_COLORS[zone.zoneId];
         const modelClone = floorModel.clone(true);
+        if (color) { applyZoneColor(modelClone, color); }
         const sizeZ = z - startZ;
         tiles.push({ x, z: startZ, key: `floor-${zone.zoneRegionId}-${x}-${z}`, offset:offset, model: modelClone, sizeZ: sizeZ });
         startZ = null;
@@ -205,6 +240,9 @@ function ZoneFloor({ zone }: { zone: ZoneRegion }) {
         const sizeZ = maxZ - startZ;
 
         const modelClone = floorModel.clone(true);
+        const color = ZONE_COLORS[zone.zoneId];
+
+        if (color) { applyZoneColor(modelClone, color); }
         tiles.push({ x, z:(startZ), key: `floor-${zone.zoneRegionId}-${x}-${startZ}`, offset:offset, model: modelClone, sizeZ: sizeZ });
     }
   }
@@ -249,6 +287,7 @@ function Walls({ layout }: { layout: MapLayout }) {
     z: number;
     rotY: number;
     type: Group;
+    length: number;
     decoration?: WallDecorationType;
   }> = [];
   let decorationSeed = 4; // Seed for wall decoration randomization, incremented for each wall segment
@@ -265,26 +304,30 @@ function Walls({ layout }: { layout: MapLayout }) {
         wallPlacements.push({
           key: `wall-h-${i}-${x}`,
           x: x + 0.5,
-          z,
-          rotY: 0,
+          z: z,
+          rotY: wall.rotation,
           type: wall.type === 'doorway' ? doorModel : wallModel,
-          decoration: decoration
+          decoration: decoration,
+          length: wall.length
         });
       }
+
     } else {
-      const x = wall.x1;
+
+      const x = wall.length !== 1 ? wall.x1 + 0.5: wall.x1;
       const startZ = Math.min(wall.y1, wall.y2);
       const endZ = Math.max(wall.y1, wall.y2);
       for (let z = startZ; z < endZ; z++) {
         const decoration = addWallDecorations(decorationSeed++, wall.validDecorationRotation);
-        
+        const new_z = wall.length !== 1 ? z - 0.5 : z + 0.5; // Adjust z for vertical walls to align with tile edges
         wallPlacements.push({
           key: `wall-v-${i}-${z}`,
-          x,
-          z: z + 0.5,
-          rotY: Math.PI / 2,
+          x: x, // Adjust x for vertical walls to align with tile edges
+          z: new_z,
+          rotY: wall.rotation,
           type: wall.type === 'doorway' ? doorModel : wallModel,
-          decoration: decoration
+          decoration: decoration,
+          length: wall.length
         });
       }
     }
@@ -293,8 +336,8 @@ function Walls({ layout }: { layout: MapLayout }) {
 
   return (
     <>
-      {wallPlacements.map(({ key, x, z, rotY,type, decoration }) => (
-        <WallSegment key={key} id={key} x={x} z={z} rotY={rotY} type={type} decoration={decoration}/>
+      {wallPlacements.map(({ key, x, z, rotY,type, decoration, length }) => (
+        <WallSegment key={key} id={key} x={x} z={z} rotY={rotY} type={type} decoration={decoration} length={length}/>
       ))}
     </>
   );
@@ -337,7 +380,7 @@ function addWallDecorations(seed: number, validDecorationRotation: string): Wall
   return {modelName: null}; // Return null if no decoration is added
 }
 
-const WallSegment = ({ id, x, z, rotY, type, decoration }: { id: string; x: number; z: number; rotY: number; type: Group; decoration?: WallDecorationType }) => {
+const WallSegment = ({ id, x, z, rotY, type, decoration, length }: { id: string; x: number; z: number; rotY: number; type: Group; decoration?: WallDecorationType; length: number }) => {
   return (
     <>
         <group 
@@ -346,7 +389,7 @@ const WallSegment = ({ id, x, z, rotY, type, decoration }: { id: string; x: numb
           rotation={[-Math.PI / 2, 0, rotY]}>
           <primitive
             object={type.clone(true)}
-            scale={[FBX_SCALE, FBX_SCALE, FBX_SCALE]}
+            scale={[FBX_SCALE * length, FBX_SCALE, FBX_SCALE]}
             castShadow={false}
           />
 
@@ -408,12 +451,18 @@ function GroundPlane({ layout }: { layout: MapLayout }) {
 const fbxCache = new Map<string, Group>();
 const textureCache: { atlas: Texture | null } = { atlas: null };
 
-function useFBXModel(modelUrl: string): Group | null {
+function useFBXModel(modelUrl: string | null): Group | null {
   const [model, setModel] = useState<Group | null>(
-    () => fbxCache.get(modelUrl)?.clone(true) ?? null
+    () => (modelUrl ? fbxCache.get(modelUrl)?.clone(true) ?? null : null)
   );
 
   useEffect(() => {
+    // A null URL means "this placement has no model" -- not an error, and not
+    // something to hand to FBXLoader.
+    if (!modelUrl) {
+      setModel(null);
+      return;
+    }
     if (fbxCache.has(modelUrl)) {
       setModel(fbxCache.get(modelUrl)!.clone(true));
       return;
@@ -975,8 +1024,14 @@ function NavControls({ controlsRef, cameraRef, layout }: NavControlsProps) {
  * Top-level Three.js floor plan canvas. Drop-in replacement for
  * Takes the same `MapLayout` the parser produces and renders a real
  * 3D scene with Google Maps-style navigation controls.
+ *
+ * Memoized on its three props, so a page state change that leaves them alone (the
+ * dashboard menu opening, a dashboard toggling) does not reconcile the whole scene
+ * tree, which on a large layout holds a mesh and a text label per persona.
  */
-export function ThreeFloorPlan({ layout, showZoneLabels, personas }: ThreeFloorPlanProps) {
+export const ThreeFloorPlan = memo(ThreeFloorPlanImpl);
+
+function ThreeFloorPlanImpl({ layout, showZoneLabels, personas }: ThreeFloorPlanProps) {
   const mapDiag = Math.max(layout.widthInTiles, layout.heightInTiles);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const cameraRef = useRef<Camera | null>(null);

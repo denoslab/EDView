@@ -41,4 +41,22 @@ describe("validateReplay", () => {
       validateReplay({ ...VALID, personas: [{ id: "X", role: "Janitor" }] })
     ).toThrow(/role/);
   });
+
+  test("accepts a replay carrying Metrics version 1, and one without", () => {
+    expect(() => validateReplay({ ...VALID, Metrics: { version: 1 } })).not.toThrow();
+    expect(() => validateReplay(VALID)).not.toThrow();
+  });
+
+  test("rejects a Metrics object of another version", () => {
+    expect(() => validateReplay({ ...VALID, Metrics: { version: 2 } })).toThrow(/Metrics version/);
+    expect(() => validateReplay({ ...VALID, Metrics: null })).toThrow(/Metrics version/);
+  });
+
+  test("accepts AdmissionClerk as a persona role", () => {
+    const replay = validateReplay({
+      ...VALID,
+      personas: [{ id: "Admission Clerk 1", role: "AdmissionClerk" }],
+    });
+    expect(replay.personas[0].role).toBe("AdmissionClerk");
+  });
 });

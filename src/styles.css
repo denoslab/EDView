@@ -17,7 +17,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--ahs-font-sans);
   color: #1f2933;
   background: #f7f8fa;
 }
@@ -29,6 +29,8 @@ body,
 }
 
 .map-viewer-header {
+  position: relative;
+  z-index: 40;
   padding: 16px 24px;
   border-bottom: 1px solid #e1e4e8;
   background: #ffffff;
@@ -160,7 +162,7 @@ body,
   gap: 6px;
 }
 
-.map-list-item {
+.sidebar-list-item {
   width: 100%;
   text-align: left;
   background: #f7f8fa;
@@ -175,17 +177,17 @@ body,
   font-family: inherit;
 }
 
-.map-list-item:hover {
+.sidebar-list-item:hover {
   background: #eef1f4;
 }
 
-.map-list-item.active {
+.sidebar-list-item.active {
   background: #1a4480;
   border-color: #1a4480;
   color: #ffffff;
 }
 
-.map-list-item.active .map-description {
+.sidebar-list-item.active .map-description {
   color: #d3dceb;
 }
 
@@ -291,7 +293,7 @@ body,
   /*
    * The toggle button targets should be comfortably tappable.
    */
-  .map-list-item {
+  .sidebar-list-item {
     padding: 12px 14px;
   }
 
@@ -357,6 +359,275 @@ button {
   font-size: 13px;
   z-index: 20;
   font-family: monospace;
+  
+
+}
 
 
+/* Dashboard controls in the header use the brand font and colour. */
+.top-bar-button {
+  font-family: inherit;
+  background-color: var(--ahs-primary);
+  border-radius: 6px;
+}
+
+.top-bar-button:focus-visible {
+  outline: 2px solid var(--ahs-focus);
+  outline-offset: 2px;
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  display: flex;
+  gap: 12px;
+  align-items: center; /* Fixed camelCase */
+  border-radius: 8px;  /* Fixed camelCase */
+  font-family: monospace; /* Fixed camelCase */
+  z-index: 30;         /* Fixed camelCase */
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.overlay-block {
+  display: flex;
+  justify-content: center; /* Horizontal centering */
+  align-items: center;     /* Vertical centering */
+} 
+
+.liveDashboardComponent {
+  position: fixed;
+  top: 75px;
+  padding: 16px;
+
+  background: rgba(0, 0, 0, 0.65);
+  max-width: 80%;
+
+
+
+} 
+
+.overlay-div {
+  position: fixed;
+  padding: 16px;
+  width: 80%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+    overflow-y: auto; /* Enables scrolling on content overflow */
+} 
+
+
+.overlay-div.is-entering {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(0.8);
+  pointer-events: auto;
+  /* Use the springy pop-in animation just for entry */
+  animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.overlay-div.is-leaving {
+  animation: pop-out 0.5s ease-in forwards;
+}
+
+/* 1. Define the animation steps */
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.00); /* Overshoot slightly */
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+@keyframes pop-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4); /* Shrink slightly as it fades */
+  }
+}
+
+.inactive-button{
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  cursor: auto;
+
+}
+
+aside button{
+  width: 100%;
+  text-align: left;
+  background: #f7f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: inherit; 
+}
+
+aside button .enabled{
+  background-color: #d5deee;
+}
+
+
+/* Dashboard picker in the top-right of the viewer header. */
+.dashboard-menu {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  z-index: 50;
+  transform: translateY(-50%);
+}
+
+.dashboard-menu-trigger {
+  display: flex;
+  width: 44px;
+  height: 40px;
+  padding: 9px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.dashboard-menu-bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.dashboard-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 320px;
+  padding: 10px;
+  border: 1px solid #c8d2df;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.dashboard-menu-heading {
+  padding: 8px 10px 10px;
+  color: #5f6b7a;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard-menu-panel button.dashboard-menu-option {
+  display: grid;
+  width: 100%;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #183b66;
+  text-align: left;
+  white-space: normal;
+  font-family: inherit;
+}
+
+.dashboard-menu-panel button.dashboard-menu-option:hover,
+.dashboard-menu-panel button.dashboard-menu-option:focus-visible {
+  border-color: #b8cce5;
+  background: #f2f6fb;
+  outline: none;
+}
+
+.dashboard-menu-panel button.dashboard-menu-option:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ahs-focus);
+}
+
+.dashboard-menu-item-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dashboard-menu-item-description {
+  color: #46586c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dashboard-menu-item-sections {
+  color: #62758a;
+  font-size: 11px;
+}
+
+@media (max-width: 520px) {
+  .dashboard-menu-panel {
+    min-width: min(320px, calc(100vw - 24px));
+  }
+}
+
+/*
+ * The live dashboard's close control. It sits at the end of the overlay's top row of
+ * cards (and beside the "waiting for data" message), since the dashboard picker only
+ * opens the overlay; Escape closes it too.
+ */
+.live-dashboard-close {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  margin-left: 4px;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+}
+
+.live-dashboard-close:hover {
+  background: #f1f1f1;
+}
+
+.live-dashboard-close:focus-visible {
+  outline: 2px solid var(--ahs-focus);
+  outline-offset: 2px;
 }

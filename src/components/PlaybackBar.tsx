@@ -1,26 +1,12 @@
 import type { PlaybackController, PlaybackSpeed } from "@/replay/usePlayback";
 
-const SPEEDS: PlaybackSpeed[] = [1, 4, 16, 64];
+const SPEEDS: PlaybackSpeed[] = [8, 16, 64];
 
 export function PlaybackBar({ ctrl, simTime }: { ctrl: PlaybackController; simTime?: string }) {
   return (
     <div
+    className="bottomBar"
       data-testid="playback-bar"
-      style={{
-        position: "fixed",
-        bottom: 16,
-        left: 16,
-        right: 16,
-        padding: 12,
-        background: "rgba(0,0,0,0.65)",
-        color: "white",
-        display: "flex",
-        gap: 12,
-        alignItems: "center",
-        borderRadius: 8,
-        fontFamily: "monospace",
-        zIndex: 30,
-      }}
     >
       <button
         data-testid={ctrl.isPlaying ? "pause" : "play"}

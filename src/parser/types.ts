@@ -30,7 +30,10 @@ export type ZoneId =
   | 'hallway'
   | 'minor_injuries_zone'
   | 'major_injuries_zone'
-  | 'trauma_room'
+  | 'trauma_zone'
+  | 'fast_track_area'
+  | "admission_room"
+  | "stretcher_zone"
   | 'diagnostic_room'
   | 'exit';
 
@@ -167,6 +170,8 @@ export interface SpawningLocation {
  * row `r` running from column `a` to column `b` has `y1 === y2 === r` and
  * `x1 === a, x2 === b + 1`.
  */
+
+
 export interface WallSegment {
   /** Orientation of the segment. */
   orientation: 'horizontal' | 'vertical';
@@ -177,6 +182,8 @@ export interface WallSegment {
   x2: number;
   y2: number;
   type: 'wall' | 'doorway';
+  rotation: number;
+  length: number;
   validDecorationRotation: string;
 }
 
@@ -241,16 +248,14 @@ export interface TiledMap {
  * the human-readable zone label that appears in the CSV's last column.
  */
 export interface ArenaBlockRow {
-  tileId: number;
-  zoneLabel: string;
+  zoneLabels: string[];
 }
 
 /**
  * Mapping rows decoded from `game_object_blocks.csv`.
  */
 export interface GameObjectBlockRow {
-  tileId: number;
-  objectLabel: string;
+  objectLabels: string[];
 }
 
 /**

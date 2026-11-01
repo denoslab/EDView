@@ -1,0 +1,83 @@
+/*
+ * Alberta Health Services (AHS) design tokens for EDView.
+ *
+ * Primitive values are the hex codes printed in the AHS Brand Toolkit, May 2024:
+ * main corporate colours (p.37) and the secondary and complementary palette (p.38).
+ * The web neutrals are the text, band and line greys the AHS website itself uses;
+ * they are not part of the printed palette.
+ *
+ * `src/theme/ahs.ts` mirrors every primitive for code that cannot read CSS custom
+ * properties (chart.js datasets), and `tests/unit/ahsTokens.test.ts` fails if the two
+ * files drift apart. Full report with sources: docs/ahs-brand-standards.md.
+ */
+:root {
+  /* Main corporate colours */
+  --ahs-blue: #005cb9;
+  --ahs-green: #009d4e;
+  --ahs-black: #000000;
+  --ahs-white: #ffffff;
+
+  /* Secondary palette: blues */
+  --ahs-cyan: #00adbb;
+  --ahs-teal: #008995;
+  --ahs-dark-blue: #005d85;
+  --ahs-dusty-teal: #9abaae;
+  --ahs-smoky-teal: #4c7e70;
+
+  /* Secondary palette: greens */
+  --ahs-light-green: #a2d45e;
+  --ahs-lime-green: #b8be14;
+  --ahs-dark-green: #789c4a;
+  --ahs-khaki: #c6c89c;
+  --ahs-dark-khaki: #888e64;
+
+  /* Secondary palette: yellows */
+  --ahs-yellow: #ffc743;
+  --ahs-dark-yellow: #eba900;
+  --ahs-orange: #e18534;
+
+  /* Secondary palette: greys */
+  --ahs-dusty-gray: #a2a9ad;
+  --ahs-dark-gray: #5b6671;
+
+  /* Secondary palette: mauves */
+  --ahs-dusty-mauve: #c1a4b7;
+  --ahs-dark-mauve: #6b3a5d;
+
+  /* Secondary palette: reds and pinks. AHS Red is an action colour, used sparingly. */
+  --ahs-red: #c23b33;
+  --ahs-light-pink: #eebec9;
+  --ahs-dark-pink: #e56385;
+
+  /* Web neutrals observed on albertahealthservices.ca (not in the printed palette) */
+  --ahs-text: #333333;
+  --ahs-text-muted: #575757;
+  --ahs-band: #f1f1f1;
+  --ahs-line: #cccccc;
+
+  /*
+   * Semantic tokens. The dashboard chrome uses four brand colours (Blue, Dark Blue,
+   * Dark Gray, Dusty Gray) plus neutrals, inside the toolkit's "three to five colours,
+   * at least two from the secondary palette" rule (p.37). Headings are AHS Dark Blue and
+   * body copy is black or dark grey, as the toolkit's colour hierarchy prescribes (p.42).
+   */
+  --ahs-surface: var(--ahs-white);
+  --ahs-surface-alt: var(--ahs-band);
+  --ahs-border: var(--ahs-line);
+  --ahs-border-strong: var(--ahs-dark-gray);
+  --ahs-heading: var(--ahs-dark-blue);
+  --ahs-link: var(--ahs-dark-blue);
+  --ahs-accent: var(--ahs-orange);
+  --ahs-accent-text: var(--ahs-black);
+  --ahs-focus: var(--ahs-blue);
+  --ahs-primary: var(--ahs-blue);
+  --ahs-positive: var(--ahs-green);
+  --ahs-urgent: var(--ahs-red);
+
+  /* Public Sans is the AHS brand font (toolkit p.33); Arial is the AHS fallback (p.34). */
+  --ahs-font-sans: 'Public Sans', Arial, Helvetica, sans-serif;
+
+  /* The toolkit's "round-cornered rule" frames (p.42). */
+  --ahs-radius: 8px;
+  --ahs-radius-lg: 12px;
+}

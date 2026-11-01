@@ -24,7 +24,10 @@ export const ZONE_TEXTURE_URLS: Record<ZoneId, string> = {
   hallway: tileConcreteUrl,
   minor_injuries_zone: tileConcreteUrl,
   major_injuries_zone: tileConcreteUrl,
-  trauma_room: tileConcreteUrl,
+  trauma_zone: tileConcreteUrl,
   diagnostic_room: tileConcreteUrl,
+  admission_room: tileConcreteUrl,
+  stretcher_zone: tileConcreteUrl,
+  fast_track_area: tileConcreteUrl,
   exit: tileConcreteUrl
 };

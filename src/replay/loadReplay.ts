@@ -5,6 +5,7 @@ const ROLES: ReadonlySet<PersonaRole> = new Set([
   "Doctor",
   "TriageNurse",
   "BedsideNurse",
+  "AdmissionClerk",
   "Unknown",
 ]);
 
@@ -34,7 +35,14 @@ export function validateReplay(input: unknown): ReplayFile {
   if (!Array.isArray(r.frames)) {
     throw new Error("frames must be an array");
   }
-
+  if (r.Metrics !== undefined) {
+    const metrics = r.Metrics as Record<string, unknown> | null;
+    if (typeof metrics !== "object" || metrics === null || metrics.version !== 1) {
+      throw new Error(
+        `unsupported Metrics version: ${String(metrics === null ? metrics : metrics.version)}`);
+    }
+  }
+  console.log(input)
   return input as ReplayFile;
 }
 
@@ -42,11 +50,14 @@ export async function loadReplayFromUrl(url: string): Promise<ReplayFile> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`);
   const json = await res.json();
+    console.log("Replay File", res)
+
   return validateReplay(json);
 }
 
 export async function loadReplayFromFile(file: File): Promise<ReplayFile> {
   const text = await file.text();
   const json = JSON.parse(text);
+  console.log(json)
   return validateReplay(json);
 }

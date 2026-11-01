@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type PlaybackSpeed = 1 | 4 | 16 | 64;
+export type PlaybackSpeed = 8 | 16 | 64;
 
 export interface PlaybackController {
   currentStep: number;
@@ -21,7 +21,7 @@ export function usePlayback(opts: {
   const [currentStep, setCurrentStep] = useState(0);
   const [interpAlpha, setInterpAlpha] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState<PlaybackSpeed>(4);
+  const [speed, setSpeed] = useState<PlaybackSpeed>(8);
 
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number | null>(null);

@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import type { ExpandedFrame } from "./expandFrames";
 import type { PersonaRole, ReplayPersona, ReplayPersonaFinalState } from "./types";
+import { useAnimationClock } from "./useAnimationClock";
 
 export interface PersonaState {
   id: string;
@@ -39,8 +40,33 @@ export function usePersonaPositions(args: {
   personas: ReplayPersona[];
   currentStep: number;
   interpAlpha: number;
-  collisionMask: boolean[][];
+  collisionMask: boolean[][]
+  playbackType: string;
 }): Record<string, PersonaState> {
+  const animationNeeded = args.playbackType === "replay";
+  const dtRef = useAnimationClock(animationNeeded);
+
+  const livePositions = useLivePositions(args);
+  const replayPositions = useReplayPositions(args, dtRef);
+  if (args.playbackType === "live") {
+    return livePositions;
+  }
+  return replayPositions;
+  
+
+
+}
+
+
+function useReplayPositions(args: {
+  expanded: ExpandedFrame[];
+  personas: ReplayPersona[];
+  currentStep: number;
+  interpAlpha: number;
+  collisionMask: boolean[][]
+  
+}, dtRef: React.MutableRefObject<number>): Record<string, PersonaState> {
+  
   const personaIndex = useMemo(() => {
     const map = new Map<string, ReplayPersona>();
     for (const p of args.personas) map.set(p.id, p);
@@ -70,6 +96,9 @@ return useMemo(() => {
   const personaPositions = personaPositionsRef.current;
   const personaProgress = personaProgressRef.current;
 
+  const TILES_PER_SECOND = 20; // tune to taste
+  // const dtRef = useAnimationClock(); // Already passed in args
+
   const out: Record<string, PersonaState> = {};
   for (const [id, delta] of Object.entries(cur.agents)) {
     const meta = personaIndex.get(id);
@@ -96,10 +125,10 @@ return useMemo(() => {
     let toY = fromY;
     let progress = personaProgress.get(id) ?? 0;
 
-    if (path && path.length > 0) {
-      // Increment progress by 1/MOVEMENT_SPEED per frame
-      progress += 1 / 8; // Adjust this divisor to change movement speed (lower = faster)
 
+    if (path && path.length > 0) {
+      // Increment progress based on elapsed time and movement speed
+      progress += (dtRef.current / 1000) * TILES_PER_SECOND;
       if (progress >= 1) {
         // Move to next step
         const nextStep = path.shift();
@@ -113,13 +142,15 @@ return useMemo(() => {
           progress = 0;
           personaPaths.set(id, path);
         }
-      } else {
+      }
+      else {
         // Interpolate between current and next step
         const currentStep = path[0];
         const prevPos = personaPositions.get(id) || { x: fromX, y: fromY };
         toX = prevPos.x + (currentStep.x - prevPos.x) * progress;
         toY = prevPos.y + (currentStep.y - prevPos.y) * progress;
       }
+      
 
       personaProgress.set(id, progress);
     }
@@ -158,6 +189,58 @@ return useMemo(() => {
   return out;
 }, [args.expanded, args.currentStep, args.collisionMask, personaIndex]);}
 
+
+
+function useLivePositions(args: {
+  expanded: ExpandedFrame[];
+  personas: ReplayPersona[];
+  currentStep: number;
+  interpAlpha: number;
+  collisionMask: boolean[][]
+}): Record<string, PersonaState> {
+
+  const personaIndex = useMemo(() => {
+    const map = new Map<string, ReplayPersona>();
+    for (const p of args.personas) map.set(p.id, p);
+    return map;
+  }, [args.personas]);
+  useRef(new Map<string, { x: number; y: number }[]>());
+  useRef(new Map<string, { x: number; y: number }>());
+  useRef(new Map<string, number>());
+
+  return useMemo(() => {
+    const cur = args.expanded[args.currentStep];
+    if (!cur) return {};
+
+    const out: Record<string, PersonaState> = {};
+
+    // Only add personas that exist in current frame
+    for (const [id, delta] of Object.entries(cur.agents)) {
+      var backupRole: PersonaRole = "Unknown";
+      if (!personaIndex.get(id)) {
+        const splitId = id.split(' ');
+        backupRole = splitId.slice(0,-1).join("") as PersonaRole;
+        //const role: PersonaRole = meta?.role ?? "Unknown";
+        args.personas.push({id, role: backupRole});
+      };
+      const meta = personaIndex.get(id);
+
+      const role: PersonaRole = meta?.role ? meta?.role : backupRole;
+
+      out[id] = {
+        id,
+        role,
+        worldX: (delta.x ?? 0) + 0.5,
+        worldZ: (delta.y ?? 0) + 0.5,
+        worldY: FLOATING_Y,
+        pronunciatio: delta.pronunciatio ?? null,
+        description: delta.description ?? null,
+      };
+    }
+
+    return out;
+  }, [args.expanded, args.currentStep, personaIndex]);
+}
 
 function isTileWalkable(
   x: number,

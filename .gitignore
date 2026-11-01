@@ -19,3 +19,8 @@ public/maps/
 
 # Source asset kits (large, only selected sprites are committed)
 src/assets/furniture/kenney_furniture-kit/
+
+# Local replays for manual checks (never committed)
+public/replays/local-*.json
+# Generated demo replays (tools_rebuild/make_mock_replay.py)
+public/replays/Mock*.json

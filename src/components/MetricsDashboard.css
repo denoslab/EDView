@@ -1,0 +1,597 @@
+/*
+ * Styles for the replay metrics overlay. Every colour and the font come from the AHS
+ * tokens in `src/theme/ahs-tokens.css`; nothing here hard-codes a brand value.
+ */
+
+/*
+ * The shared `.overlay-div` is a dark panel for LiveDashboard and CTASGraphs. This
+ * modifier lifts only the metrics overlay onto the AHS light band and leaves the pop
+ * animation untouched.
+ */
+.overlay-div.metrics-overlay {
+  /*
+   * The shared overlay rests at scale(0.8). chart.js measures its box both before the
+   * transform (ResizeObserver) and after it (getBoundingClientRect), so under a scale the
+   * charts jump between two sizes. This overlay rests unscaled at the footprint the
+   * scaled one had (94% x 100% at 0.8) and only scales while it pops in or out.
+   */
+  width: 75.2%;
+  height: 80%;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  background-color: var(--ahs-band);
+  background-color: color-mix(in srgb, var(--ahs-band) 97%, transparent);
+  color: var(--ahs-text);
+  font-family: var(--ahs-font-sans);
+  border: 1px solid var(--ahs-border);
+  border-radius: var(--ahs-radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.overlay-div.metrics-overlay.is-entering {
+  transform: translate(-50%, -50%);
+  animation-name: metrics-pop-in;
+}
+
+.overlay-div.metrics-overlay.is-leaving {
+  animation-name: metrics-pop-out;
+}
+
+/* The shared pop keyframes rescaled so the resting frame is scale(1), not 0.8. */
+@keyframes metrics-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.375);
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes metrics-pop-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+}
+
+.metrics-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 2px solid var(--ahs-primary);
+}
+
+.metrics-title-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.metrics-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ahs-heading);
+}
+
+.metrics-subtitle {
+  font-size: 12px;
+  color: var(--ahs-text-muted);
+}
+
+/* View tabs: outlined buttons, filled AHS Dark Blue when active (brand report 7.4). */
+.metrics-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.metrics-tab {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border: 1px solid var(--ahs-border-strong);
+  border-radius: 6px;
+  background: var(--ahs-surface);
+  color: var(--ahs-heading);
+  cursor: pointer;
+}
+
+.metrics-tab:hover {
+  background: var(--ahs-surface-alt);
+}
+
+.metrics-tab.is-active {
+  background: var(--ahs-heading);
+  border-color: var(--ahs-heading);
+  color: var(--ahs-white);
+}
+
+.metrics-tab:focus-visible,
+.metrics-close:focus-visible,
+.metrics-info:focus-visible {
+  outline: 2px solid var(--ahs-focus);
+  outline-offset: 2px;
+}
+
+.metrics-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ahs-border-strong);
+  border-radius: 6px;
+  background: var(--ahs-surface);
+  color: var(--ahs-text);
+  cursor: pointer;
+}
+
+/* The overlay's own close control pins to the corner so a wrapped tab strip never moves it. */
+.metrics-overlay > .metrics-close,
+.metrics-header > .metrics-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.metrics-header {
+  padding-right: 44px;
+}
+
+.metrics-body {
+  min-height: 200px;
+}
+
+/* The "how is this computed" control: a small outlined circle in the heading colour,
+   upright and centred (an italic glyph sat off-centre). */
+.metrics-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: normal;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--ahs-heading);
+  border-radius: 50%;
+  background: var(--ahs-surface);
+  color: var(--ahs-heading);
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Both controls turn AHS Red under the pointer and on keyboard focus, so the target is unmistakable. */
+.metrics-close:hover,
+.metrics-close:focus-visible,
+.metrics-info:hover,
+.metrics-info:focus-visible {
+  border-color: var(--ahs-urgent);
+  color: var(--ahs-urgent);
+}
+
+.metrics-info-inline {
+  cursor: default;
+}
+
+.metrics-method-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.metrics-method {
+  width: min(640px, 92%);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--ahs-surface);
+  border: 1px solid var(--ahs-border);
+  border-radius: var(--ahs-radius-lg);
+  padding: 16px 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  color: var(--ahs-text);
+}
+
+.metrics-method-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metrics-method-meta {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.metrics-method-body {
+  margin: 0;
+  font-size: 13px;
+}
+
+.metrics-method-body dt {
+  font-weight: 600;
+  color: var(--ahs-text-muted);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+
+.metrics-method-body dd {
+  margin: 2px 0 0;
+}
+
+.metrics-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ahs-border-strong);
+  color: var(--ahs-text);
+  background: var(--ahs-surface);
+  white-space: nowrap;
+}
+
+/* Status fills are brand fills with dark text; labels are never coloured body text. */
+.metrics-badge-built {
+  background: color-mix(in srgb, var(--ahs-green) 25%, white);
+  border-color: var(--ahs-green);
+}
+
+.metrics-badge-derived {
+  background: color-mix(in srgb, var(--ahs-cyan) 25%, white);
+  border-color: var(--ahs-teal);
+}
+
+.metrics-badge-approximate {
+  background: color-mix(in srgb, var(--ahs-yellow) 45%, white);
+  border-color: var(--ahs-dark-yellow);
+}
+
+/* Tables: AHS line rule, tabular numerals, sticky header inside a scrolling panel. */
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metrics-table th,
+.metrics-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ahs-border);
+  vertical-align: top;
+}
+
+.metrics-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--ahs-surface);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ahs-text-muted);
+}
+
+.metrics-table-kv th {
+  width: 36%;
+  font-weight: 600;
+  color: var(--ahs-text-muted);
+}
+
+.metrics-table-method td:nth-child(2) {
+  min-width: 320px;
+}
+
+.metrics-bar {
+  display: inline-block;
+  height: 10px;
+  max-width: 120px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-radius: 3px;
+  background: var(--ahs-blue);
+  opacity: 0.85;
+}
+
+.metrics-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border: 1px solid var(--ahs-border-strong);
+  border-radius: 999px;
+  background: var(--ahs-surface);
+  color: var(--ahs-text);
+}
+
+.metrics-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.metrics-muted {
+  color: var(--ahs-text-muted);
+  font-size: 12px;
+}
+
+.metrics-error {
+  color: var(--ahs-text);
+  padding-left: 8px;
+  border-left: 3px solid var(--ahs-urgent);
+}
+
+.metrics-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.metrics-list li {
+  margin-bottom: 6px;
+}
+
+.metrics-empty {
+  height: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ahs-text-muted);
+  padding: 12px;
+}
+
+/* The one call to action per view (brand report 7.4): the baseline file picker. */
+.metrics-file {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--ahs-accent);
+  color: var(--ahs-accent-text);
+  cursor: pointer;
+}
+
+.metrics-file input {
+  display: none;
+}
+
+.metrics-tile-head {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.metrics-tile-ok {
+  border-top: 3px solid var(--ahs-positive);
+}
+
+.metrics-tile-warn {
+  border-top: 3px solid var(--ahs-dark-yellow);
+}
+
+.metrics-tile-bad {
+  border-top: 3px solid var(--ahs-urgent);
+}
+
+.metrics-panel-body-tall {
+  height: 420px;
+}
+
+.metrics-panel-body > .metrics-table {
+  display: block;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.metrics-panel-body > .metrics-table-method {
+  max-height: none;
+  overflow: visible;
+}
+
+/*
+ * Reserved for the AHS logo. AHS supplies its logo on request (brand.toolkit@ahs.ca)
+ * and may revoke the right to use it, so nothing is embedded. The slot keeps the
+ * toolkit's minimum electronic size (100 px wide, 60 px high) available without
+ * reserving the height until a logo is placed.
+ */
+.metrics-logo-slot {
+  margin-left: auto;
+  min-width: 120px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.metrics-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/*
+ * A tile is a centred column: title (two lines at most), the value, a qualifier saying
+ * what the value is of, and a muted note. Tiles in a row stretch to the same height, so
+ * the content is centred vertically rather than left hanging at the top.
+ */
+.metrics-tile {
+  flex: 1 1 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 136px;
+  background: var(--ahs-surface);
+  border: 1px solid var(--ahs-border);
+  border-radius: var(--ahs-radius);
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.metrics-tile-head {
+  max-width: 240px;
+}
+
+.metrics-tile-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ahs-text-muted);
+}
+
+.metrics-tile-value {
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ahs-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.metrics-tile-qualifier {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ahs-text);
+}
+
+.metrics-tile-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ahs-text-muted);
+}
+
+.metrics-caption {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--ahs-text-muted);
+}
+
+.metrics-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+
+.metrics-row > .metrics-panel {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .metrics-row {
+    flex-wrap: wrap;
+  }
+
+  .metrics-row > .metrics-panel {
+    flex-basis: 100%;
+  }
+}
+
+.metrics-panel {
+  box-sizing: border-box;
+  background: var(--ahs-surface);
+  border: 1px solid var(--ahs-border);
+  border-radius: var(--ahs-radius);
+  padding: 14px 16px;
+}
+
+.metrics-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metrics-panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ahs-heading);
+}
+
+.metrics-panel-body {
+  position: relative;
+  height: 300px;
+  overflow: auto;
+}
+
+/* A chart's own box: fills the panel body and clips, so it never shows a scrollbar. */
+.metrics-chart {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* The Method tab's tables grow with their text instead of scrolling inside a 300px box. */
+.metrics-panel:has(.metrics-table-method) .metrics-panel-body {
+  height: auto;
+}
+
+.metrics-panel-foot {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ahs-text-muted);
+}
+
+/* Dark Gray edge (5.9:1 on white) so the control boundary itself passes 3:1. */
+.metrics-select {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--ahs-border-strong);
+  border-radius: 6px;
+  background: var(--ahs-surface);
+  color: var(--ahs-text);
+}
+
+.metrics-select:focus-visible {
+  outline: 2px solid var(--ahs-focus);
+  outline-offset: 2px;
+}

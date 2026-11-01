@@ -4,6 +4,7 @@ import tsEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import globals from 'globals';
 
 /**
  * Flat-config ESLint setup for the EDSim React frontend.
@@ -18,7 +19,8 @@ export default [
       'node_modules/**',
       'coverage/**',
       'playwright-report/**',
-      'test-results/**'
+      'test-results/**',
+      'maps/**'
     ]
   },
   js.configs.recommended,
@@ -32,11 +34,8 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        document: 'readonly',
-        URL: 'readonly'
+        ...globals.node,
+        ...globals.browser
       }
     }
   },
@@ -50,25 +49,9 @@ export default [
         ecmaFeatures: { jsx: true }
       },
       globals: {
-        window: 'readonly',
-        document: 'readonly',
-        console: 'readonly',
-        fetch: 'readonly',
-        URL: 'readonly',
-        URLSearchParams: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLDivElement: 'readonly',
-        HTMLInputElement: 'readonly',
+        ...globals.browser,
         React: 'readonly',
-        Response: 'readonly',
-        RequestInfo: 'readonly',
-        process: 'readonly',
-        DragEvent: 'readonly',
-        Event: 'readonly',
-        File: 'readonly',
-        FileReader: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly'
+        process: 'readonly'
       }
     },
     plugins: {

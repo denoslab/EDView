@@ -57,8 +57,13 @@ export const LAYER_NAMES = {
   spawningBlocks: 'Spawning Blocks',
   walls: 'Walls',
   collisions: 'Collisions',
-  graphic: 'Tile Layer 1'
+  graphic: 'Tile Layer 1',
 } as const;
+
+const LAYER_DEFINITION = {
+  arena_def: 'Arena Definition',
+  object_def: 'Object Definition'
+} as const
 
 /* -------------------------------------------------------------------------- */
 /* CSV-label normalisation                                                    */
@@ -88,12 +93,18 @@ export function normaliseZoneId(label: string): ZoneId | undefined {
       return 'minor_injuries_zone';
     case 'major injuries zone':
       return 'major_injuries_zone';
-    case 'trauma room':
-      return 'trauma_room';
+    case 'trauma zone':
+      return 'trauma_zone';
     case 'diagnostic room':
       return 'diagnostic_room';
     case 'exit':
       return 'exit';
+    case 'fast track area':
+      return 'fast_track_area';
+    case 'admission room':
+      return 'admission_room';
+    case 'stretcher zone':
+      return 'stretcher_zone';
     default:
       return undefined;
   }
@@ -115,12 +126,18 @@ export function zoneDisplayName(zoneId: ZoneId): string {
       return 'Minor Injuries';
     case 'major_injuries_zone':
       return 'Major Injuries';
-    case 'trauma_room':
+    case 'trauma_zone':
       return 'Trauma';
     case 'diagnostic_room':
       return 'Diagnostics';
     case 'exit':
       return 'Exit';
+    case 'fast_track_area':
+      return 'Fast Track';
+    case 'admission_room':
+      return 'Admission';
+    case 'stretcher_zone':
+      return 'Stretcher Zone';
   }
 }
 
@@ -153,7 +170,7 @@ export function normaliseEquipmentType(label: string): EquipmentType | undefined
       return 'triage_bed';
       
     default:
-      return undefined;
+      return cleaned.replaceAll(" ", "_") as EquipmentType;
   }
 }
 
@@ -224,7 +241,7 @@ function tileAt(layer: TiledLayer, x: number, y: number): number {
  */
 export function extractZoneRegions(
   arena: TiledLayer,
-  arenaTileToZone: Map<number, ZoneId>
+  arenaTileToZone: Map<number, ZoneId>,
 ): ZoneRegion[] {
   const visited: boolean[] = new Array(arena.data.length).fill(false);
   const regions: ZoneRegion[] = [];
@@ -443,7 +460,8 @@ function simplifyCollinear(polygon: TilePoint[]): TilePoint[] {
 export function extractEquipment(
   layer: TiledLayer,
   equipmentLookup: Map<number, EquipmentType>,
-  graphic: TiledLayer
+  graphic: TiledLayer,
+  collision: TiledLayer
 ): EquipmentPlacement[] {
   const out: EquipmentPlacement[] = [];
   for (let y = 0; y < layer.height; y++) {
@@ -460,13 +478,14 @@ export function extractEquipment(
       if (rotationID > 3000000000) {
         rotation_offset = -Math.PI *2;
       }
-      else if (rotationID > 2000000000) {
+      else if (rotationID > 2000000000 || tileAt(collision, x, y + 1) !== 0) {
         rotation_offset = -Math.PI / 2;
       }
 
-      else if (rotationID > 1000000000) {
+      else if (rotationID > 1000000000 || tileAt(collision, x, y - 1) !== 0) {
         rotation_offset = Math.PI / 2;
       }
+      
       
       out.push({
         equipmentId: `${type}-${x}-${y}`,
@@ -545,9 +564,41 @@ export function extractSpawningLocations(
  */
 export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallSegment[] {
   const isWall = (x: number, y: number): boolean => {
-    if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false;
+    // If outside map bounds, treat as solid boundary wall
+    if (x < 0 || y < 0 || x >= layer.width || y >= layer.height) return false; 
     return (layer.data[y * layer.width + x] ?? 0) !== 0;
   };
+
+  // Helper function to calculate rotation based on neighboring wall grid topology
+  function getSegmentRotation(x: number, yStart: number, yEnd: number, isWallFn = isWall): { rotation: number, length: number } {
+    const isSingleBlock = (yEnd - yStart === 1);
+    
+    if (isSingleBlock) {
+
+
+      const y = yStart;
+      const length = 1.5;
+
+      if (isWallFn(x, y + 1) || isWallFn(x, y - 1)) {
+       return { rotation: Math.PI / 2, length: 1 };  // Vertical wall 
+      }
+
+      // Check top-left to bottom-right diagonal (\)
+      const hasTLBR = isWallFn(x - 1, y - 1) || isWallFn(x + 1, y + 1);
+      // Check bottom-left to top-right diagonal (/)
+      const hasBLTR = isWallFn(x - 1, y + 1) || isWallFn(x + 1, y - 1);
+
+      if (hasTLBR && !hasBLTR) {
+        return { rotation:  - Math.PI / 4, length: length };  // -45 degrees
+      }
+      else{
+        return { rotation: Math.PI / 4, length: length }; // 45 degrees
+      }
+    }
+
+    // Default vertical wall rotation (90 degrees)
+    return { rotation: Math.PI / 2, length: 1 };
+  }
 
   // Collect perimeter-edge cells. Horizontal edges are keyed by the tile-edge
   // y-value; the set holds tile columns `x` where a horizontal edge runs from
@@ -574,9 +625,23 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
   for (let y = 0; y < layer.height; y++) {
     for (let x = 0; x < layer.width; x++) {
-      if (!isWall(x, y)) continue;
-      if (!isWall(x + 1, y) && !isWall(x - 1, y )) {
+
+
+      if (!isWall(x, y)) {
+
+        continue;
+      };
+
+
+
+      // if (isWall(x- 1, y + 1) && isWall(x + 1, y + 1)) {
+      //   wallOrientation = "Horizontal"
+      //   addHorizontal(y, x); // Horizontal wall
+      // }
+
+     if (!isWall(x + 1, y) && !isWall(x - 1, y )) {
         addVertical(x, y); // Vertical wall
+        
       } 
       else if (isWall(x, y + 1) && isWall(x + 1, y)) {
         addVertical(x, y); // Vertical wall
@@ -584,6 +649,15 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       else if (isWall(x, y + 1) && isWall(x - 1, y)) {
         addVertical(x, y); // Vertical wall
       }
+      // else if (isWall(x -1, y - 1) && !isWall(x + 1, y + 1)) {
+      //   addVertical(x, y-1); // Vertical wall
+      // }
+      // else if (isWall(x + 1, y - 1) && !isWall(x - 1, y + 1)) {
+      //   addVertical(x, y-1); // Vertical wall
+      //   addHorizontal(y - 1, x); // Vertical wall
+      // }
+
+
 
 
       if (isWall(x + 1, y)) {
@@ -595,11 +669,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         addHorizontal(y, x); 
       }
       if (isWall(x, y - 1) && isWall(x + 1, y)) {
-        addHorizontal(y, x); // Left edge
-                //addVertical(x, y);
-
+        addHorizontal(y, x); 
       }
-
     }
   }
 
@@ -610,6 +681,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
     const xs = Array.from(horizontalEdges.get(y)!).sort((a, b) => a - b);
     let runStart: number | null = null;
     let runEnd = 0;
+
     for (const x of xs) {
       let validDecorationRotation = "interior";
 
@@ -631,6 +703,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
           x2: runEnd,
           y2: y,
           type: 'wall',
+          rotation: 0,
+          length: 1,
           validDecorationRotation: validDecorationRotation
         });
 
@@ -642,10 +716,12 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
             x2: x,        // Ends where the next wall starts
             y2: y,
             type: 'doorway',
+            rotation: 0,
+            length: 1,
             validDecorationRotation: "none"
           });
         }
-
+        
         runStart = x;
         runEnd = x + 1;
       }
@@ -667,6 +743,8 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         x2: runEnd,
         y2: y,
         type: 'wall',
+        rotation: 0,
+        length: 1,
         validDecorationRotation: validDecorationRotation
 
       });
@@ -675,20 +753,17 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
   // Merge consecutive vertical edges sharing the same x value into runs.
   const sortedXs = Array.from(verticalEdges.keys()).sort((a, b) => a - b);
+
   for (const x of sortedXs) {
     const ys = Array.from(verticalEdges.get(x)!).sort((a, b) => a - b);
     let runStart: number | null = null;
     let runEnd = 0;
-    
+
     for (const y of ys) {
       let validDecorationRotation = "interior";
-
       if (tileAt(arena, x, y) === 0) {
         const half = layer.width / 2;
-
-        if (x < half)      validDecorationRotation = "left_edge";
-        else if (x > half) validDecorationRotation = "right_edge";
-
+        validDecorationRotation = x < half ? "left_edge" : "right_edge";
       }
 
       if (runStart === null) {
@@ -697,6 +772,9 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       } else if (y === runEnd) {
         runEnd = y + 1;
       } else {
+        // 1. Calculate rotation using runStart/runEnd bounds
+        const { rotation, length } = getSegmentRotation(x, runStart, runEnd, isWall);
+
         segments.push({
           orientation: 'vertical',
           x1: x,
@@ -704,21 +782,23 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
           x2: x,
           y2: runEnd,
           type: 'wall',
-          validDecorationRotation: validDecorationRotation
-
+          rotation,
+          length,
+          validDecorationRotation
         });
 
-
-        if (y - runEnd === 1) {
+        if (y - runEnd === 1 && !isWall(x - 1, runEnd) && !isWall(x + 1, runEnd) ) {
+          
           segments.push({
             orientation: 'vertical',
-            x1: x,   // Starts where the last wall ended
+            x1: x,
             y1: runEnd,
-            x2: x,        // Ends where the next wall starts
+            x2: x,
             y2: y,
             type: 'doorway',
+            rotation: Math.PI / 2,
+            length: 1,
             validDecorationRotation: "none"
-
           });
         }
 
@@ -727,14 +807,17 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
       }
     }
 
+    // Trailing segment check
     if (runStart !== null) {
       let validDecorationRotation = "interior";
-
-      if (tileAt(arena, x-1, runStart) === 0 || tileAt(arena, x+1, runStart) === 0) {
+      if (tileAt(arena, x - 1, runStart) === 0 || tileAt(arena, x + 1, runStart) === 0) {
         const half = layer.width / 2;
-        if (x < half)          validDecorationRotation = "left_edge";
-        else if (x > half) validDecorationRotation = "right_edge";
+        validDecorationRotation = x < half ? "left_edge" : "right_edge";
       }
+
+      // 2. Calculate rotation for the final run
+      const { rotation, length } = getSegmentRotation(x, runStart, runEnd, isWall);
+
       segments.push({
         orientation: 'vertical',
         x1: x,
@@ -742,8 +825,9 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
         x2: x,
         y2: runEnd,
         type: 'wall',
-        validDecorationRotation: validDecorationRotation
-
+        rotation,
+        length,
+        validDecorationRotation
       });
     }
   }
@@ -751,6 +835,7 @@ export function extractWallSegments(layer: TiledLayer, arena: TiledLayer): WallS
 
   return segments;
 }
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -785,17 +870,19 @@ export function extractCollisionMask(layer: TiledLayer): boolean[][] {
  */
 export function buildArenaTileLookup(
   blocks: SpecialBlocks['arenaBlocks'],
+  arenaDef: TiledLayer,
   onWarning?: (msg: string) => void
 ): Map<number, ZoneId> {
   const lookup = new Map<number, ZoneId>();
   const warn = onWarning ?? ((m: string) => console.warn(m));
-  for (const row of blocks) {
-    const zoneId = normaliseZoneId(row.zoneLabel);
+  for (let i = 0; i < blocks[0].zoneLabels.length; i++) {
+    const label = blocks[0].zoneLabels[i];
+    const zoneId = normaliseZoneId(label);
     if (!zoneId) {
-      warn(`arena_blocks: unknown zone label "${row.zoneLabel}" for tile ${row.tileId}`);
+      warn(`arena_blocks: unknown zone label "${label}" for tile ${blocks[0].zoneLabels[i]}`);
       continue;
     }
-    lookup.set(row.tileId, zoneId);
+    lookup.set(arenaDef.data[arenaDef.width  + i] + 1280 , zoneId );
   }
   return lookup;
 }
@@ -805,20 +892,23 @@ export function buildArenaTileLookup(
  */
 export function buildEquipmentLookup(
   blocks: SpecialBlocks['gameObjectBlocks'],
+  defLayer: TiledLayer,
   onWarning?: (msg: string) => void
 ): Map<number, EquipmentType> {
   const lookup = new Map<number, EquipmentType>();
   const warn = onWarning ?? ((m: string) => console.warn(m));
-  for (const row of blocks) {
-    const type = normaliseEquipmentType(row.objectLabel);
-    if (!type) {
-      warn(
-        `game_object_blocks: unknown object label "${row.objectLabel}" for tile ${row.tileId}`
-      );
+  for (let i = 0; i < blocks[0].objectLabels.length; i++) {
+    const label = blocks[0].objectLabels[i];
+    console.log(label)
+    const objectId = normaliseEquipmentType(label);
+    if (!objectId) {
+      warn(`game_object_blocks: unknown object label "${label}" for tile ${blocks[0].objectLabels[i]}`);
       continue;
     }
-    lookup.set(row.tileId, type);
+    lookup.set(defLayer.data[i] + 1280, objectId as EquipmentType);
   }
+  console.log(lookup)
+
   return lookup;
 }
 
@@ -859,6 +949,7 @@ export function buildSpawningLookup(
 export function parseTiledJSON(
   mapId: string,
   tiled: TiledMap,
+  tileDef: TiledMap,
   specialBlocks: SpecialBlocks,
   onWarning?: (msg: string) => void
 ): MapLayout {
@@ -868,10 +959,13 @@ export function parseTiledJSON(
   const wallsLayer = findLayer(tiled, LAYER_NAMES.collisions);
   const collisionsLayer = findLayer(tiled, LAYER_NAMES.collisions);
   const graphicLayer = findLayer(tiled, LAYER_NAMES.graphic);
+  const defArenaLayer = findLayer(tileDef, LAYER_DEFINITION.arena_def);
+  const defObjectLayer = findLayer(tileDef, LAYER_DEFINITION.object_def);
 
-  const arenaLookup = buildArenaTileLookup(specialBlocks.arenaBlocks, onWarning);
+  const arenaLookup = buildArenaTileLookup(specialBlocks.arenaBlocks, defArenaLayer, onWarning);
   const equipmentLookup = buildEquipmentLookup(
     specialBlocks.gameObjectBlocks,
+    defObjectLayer,
     onWarning
   );
   const spawningLookup = buildSpawningLookup(specialBlocks.spawningBlocks, onWarning);
@@ -884,7 +978,7 @@ export function parseTiledJSON(
     heightInTiles: tiled.height,
     tileSizePx: tiled.tilewidth,
     zones: extractZoneRegions(arenaLayer, arenaLookup),
-    equipment: extractEquipment(objectLayer, equipmentLookup, graphicLayer),
+    equipment: extractEquipment(objectLayer, equipmentLookup, graphicLayer, collisionsLayer),
     spawningLocations: extractSpawningLocations(spawningLayer, spawningLookup),
     walls: extractWallSegments(wallsLayer, arenaLayer),
     collisionMask: extractCollisionMask(collisionsLayer)
