@@ -29,7 +29,8 @@ const queryClient = new QueryClient();
 createRoot(rootElement).render(
   <Suspense fallback={<div>Loading 3D Scene...</div>}>  
 
-  < BrowserRouter>
+  {/* The Pages build serves under /EDView/, so the router must strip that prefix. */}
+  <BrowserRouter basename={import.meta.env.BASE_URL}>
       <StrictMode>
         <QueryClientProvider client={queryClient}>
 
