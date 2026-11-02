@@ -504,6 +504,64 @@
   color: var(--ahs-text-muted);
 }
 
+/*
+ * The Overview's year-against-run grid: tile cells in fixed columns, a header row of
+ * measure titles and a label column naming each row. The year row reads quieter than the
+ * run row, which is the one being judged.
+ */
+.metrics-compare {
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.metrics-compare-grid {
+  display: grid;
+  gap: 8px;
+  min-width: min-content;
+}
+
+.metrics-compare-head {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.metrics-compare-row-label {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ahs-heading);
+}
+
+.metrics-compare-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 104px;
+  background: var(--ahs-surface);
+  border: 1px solid var(--ahs-border);
+  border-radius: var(--ahs-radius);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.metrics-compare-row-0 {
+  background: var(--ahs-surface-alt);
+}
+
+.metrics-compare-row-0 .metrics-tile-value {
+  font-size: 22px;
+  color: var(--ahs-text-muted);
+}
+
 .metrics-caption {
   margin: 0 0 14px;
   font-size: 13px;

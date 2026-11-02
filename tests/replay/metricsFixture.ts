@@ -37,6 +37,8 @@ export const METRICS: ReplayMetrics = {
       ADMITTED_BOARDING: fill(22, 25, 1),
     },
     boarders: fill(20, 25, 1),
+    // One admitted patient from 1:30, a second from 1:50: mean 10/25, peak 2 at 1:50.
+    eip: zeros().map((_, i) => (i >= 22 ? 2 : i >= 18 ? 1 : 0)),
     edwin: zeros().map((_, i) => (i < 6 ? 0.5 : i < 12 ? 2.4 : 1.6)),
     oldestWaitByState: {
       WAITING_FOR_TRIAGE: fill(0, 4, 1).map((v, i) => v * i * 5),

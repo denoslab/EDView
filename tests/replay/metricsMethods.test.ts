@@ -24,6 +24,8 @@ function attributeMethodIds(): Set<string> {
   for (const source of componentSources()) {
     for (const m of source.matchAll(/method="([A-Za-z0-9]+)"/g)) ids.add(m[1]);
     for (const m of source.matchAll(/MethodButton id="([A-Za-z0-9]+)"/g)) ids.add(m[1]);
+    // Columns defined as data (the Overview's year grid) name theirs as `method: '...'`.
+    for (const m of source.matchAll(/method: '([A-Za-z0-9]+)'/g)) ids.add(m[1]);
   }
   for (const tile of outcomeTiles(METRICS)) ids.add(tile.method);
   return ids;

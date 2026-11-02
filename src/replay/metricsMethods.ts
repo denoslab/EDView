@@ -227,6 +227,14 @@ export const METHODS: Record<string, MethodEntry> = {
     section: 'bottlenecks',
     status: 'approximate',
   },
+  eip: {
+    title: 'Emergency inpatients (EIP)',
+    computation: 'An emergency inpatient is a patient the physician has decided to admit who is still in the ED: counted from the disposition until they are out of the door, whether they are boarding in a bed or waiting to go up. The Overview shows the average count over the day and the highest count at once; the chart shows it at every moment.',
+    population: 'Admitted patients present after their disposition, every 5 minutes',
+    source: 'Metrics.series.eip',
+    section: 'bottlenecks',
+    status: 'built',
+  },
   edwin: {
     title: 'EDWIN crowding score',
     computation: 'A published crowding index. Every present patient counts by acuity (CTAS 1 counts 5, down to CTAS 5 counting 1); the total is divided by the number of physicians on duty times the number of usable treatment spaces. Bands from the published scale: under 1.5 not busy, 1.5 to 2 busy, over 2 overcrowded.',

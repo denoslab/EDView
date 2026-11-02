@@ -7,7 +7,7 @@
  * Styling comes from `MetricsDashboard.css` through the AHS tokens; nothing here
  * hard-codes a colour except through `@/theme/ahs`.
  */
-import { createContext, useContext, useEffect, useState } from 'react';
+import { Fragment, createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Bar, Line } from 'react-chartjs-2';
@@ -412,6 +412,58 @@ export function Row({ children }: { children: ReactNode }) {
 
 export function Tiles({ children }: { children: ReactNode }) {
   return <div className="metrics-tiles">{children}</div>;
+}
+
+/** One cell of a `CompareGrid`: a tile's value, qualifier and note; `hint` shows on hover. */
+export interface CompareCell {
+  value: string;
+  qualifier?: ReactNode;
+  note?: ReactNode;
+  hint?: string;
+}
+
+export interface CompareColumn {
+  key: string;
+  title: string;
+  method?: string;
+  /** One cell per row label, in the same order. */
+  cells: CompareCell[];
+}
+
+/**
+ * Tiles in fixed columns: one column per measure, one row per source (the year, this
+ * run), so a value always sits under the one it is compared with. A wrapping tile row
+ * cannot promise that; on a narrow screen the grid scrolls sideways instead.
+ */
+export function CompareGrid({ rows, columns }: { rows: string[]; columns: CompareColumn[] }) {
+  return (
+    <div className="metrics-compare">
+      <div className="metrics-compare-grid" style={{ gridTemplateColumns: `minmax(52px, auto) repeat(${columns.length}, minmax(100px, 1fr))` }}>
+        <div />
+        {columns.map((column) => (
+          <div key={column.key} className="metrics-compare-head">
+            <h4 className="metrics-tile-title">{column.title}</h4>
+            {column.method && <MethodButton id={column.method} />}
+          </div>
+        ))}
+        {rows.map((row, r) => (
+          <Fragment key={row}>
+            <div className="metrics-compare-row-label">{row}</div>
+            {columns.map((column) => {
+              const cell = column.cells[r];
+              return (
+                <div key={column.key} className={`metrics-compare-cell metrics-compare-row-${r}`} title={cell?.hint}>
+                  <div className="metrics-tile-value">{cell?.value ?? '--'}</div>
+                  {cell?.qualifier && <div className="metrics-tile-qualifier">{cell.qualifier}</div>}
+                  {cell?.note && <div className="metrics-tile-note">{cell.note}</div>}
+                </div>
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function Caption({ children }: { children: ReactNode }) {

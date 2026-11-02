@@ -442,13 +442,19 @@ export function censusByZoneChart(metrics: ReplayMetrics): ChartSeries {
  * The cohort tiles, keyed so each tab picks its own. The admitted share and the admitted
  * 8-hour benchmark are left out while runs keep admission switched off.
  */
+/** Seen within the CTAS target, pooled over the graded levels; no share when nobody was seen. */
+export function withinTargetShare(metrics: ReplayMetrics): { seen: number; share?: number } {
+  // CTAS 1 carries no `share` (its standard is "immediate"), so the aggregate is over 2-5.
+  const graded = Object.values(metrics.compliance.withinCtasTarget).filter((cell) => cell.share !== undefined);
+  const seen = graded.reduce((sum, cell) => sum + cell.n, 0);
+  const within = graded.reduce((sum, cell) => sum + (cell.share ?? 0) * cell.n, 0);
+  return seen > 0 ? { seen, share: within / seen } : { seen };
+}
+
 export function outcomeTiles(metrics: ReplayMetrics): OutcomeTile[] {
   const { cohort, compliance } = metrics;
   const departed = cohort.completed + cohort.lwbs;
-  // CTAS 1 carries no `share` (its standard is "immediate"), so the aggregate is over 2-5.
-  const graded = Object.values(compliance.withinCtasTarget).filter((cell) => cell.share !== undefined);
-  const seen = graded.reduce((sum, cell) => sum + cell.n, 0);
-  const withinTarget = graded.reduce((sum, cell) => sum + (cell.share ?? 0) * cell.n, 0);
+  const { seen, share: withinTarget } = withinTargetShare(metrics);
   return [
     { key: 'enrolled', title: 'Patients in the day', value: `${cohort.enrolled}`, qualifier: 'arrived or already present', method: 'cohort' },
     {
@@ -469,7 +475,7 @@ export function outcomeTiles(metrics: ReplayMetrics): OutcomeTile[] {
     {
       key: 'withinTarget',
       title: 'Seen within CTAS target',
-      value: seen > 0 ? percent(withinTarget / seen) : '--',
+      value: percent(withinTarget),
       qualifier: `of ${seen} who reached a physician`,
       note: 'CTAS 2 to 5',
       method: 'withinTarget',

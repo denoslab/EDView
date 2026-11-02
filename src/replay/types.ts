@@ -139,6 +139,11 @@ export interface MetricsSeries {
   censusByCtas: ByCtas<number[]>;
   byState: Record<string, number[]>;
   boarders: number[];
+  /**
+   * Emergency inpatients (EIP) per bucket: admitted patients still in the ED after the
+   * disposition, through their walk out. Absent from replays built before the series existed.
+   */
+  eip?: number[];
   /** EDWIN crowding index per bucket; absent without bed occupancy or doctors. */
   edwin?: number[];
   /** Longest current wait (minutes) among the patients in each waiting state, per bucket. */

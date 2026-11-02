@@ -8,11 +8,14 @@
  */
 import type { MetricsCell, MetricsMaybeCell, ReplayMetrics } from './types';
 import { ahs, ahsSeries, ahsTotal, ctasColors, withAlpha } from '../theme/ahs';
+import yearReferenceFile from './yearReference.json';
 import {
   bedHourLabels,
   bucketLabels,
   ctasLevels,
+  elapsedLabel,
   hourLabels,
+  percent,
   shortState,
   STAGE1_COMPONENT_LABELS,
   STAGE1_COMPONENT_ORDER,
@@ -20,6 +23,7 @@ import {
   PHASE_STATES,
   TOTAL_COLOR,
   WAITING_STATE_ORDER,
+  withinTargetShare,
 } from './metricsSelectors';
 import type { ChartSeries, SeriesDataset } from './metricsSelectors';
 
@@ -52,6 +56,138 @@ export function edwinBand(value: number): { label: EdwinBand; color: string } {
   if (value > EDWIN_OVERCROWDED) return { label: 'Overcrowded', color: ahs.red };
   if (value >= EDWIN_BUSY) return { label: 'Busy', color: ahs.darkYellow };
   return { label: 'Not busy', color: ahs.green };
+}
+
+// ─── Overview: the year against this run ───────────────────────────────────────────
+
+/** The Overview's headline measures, in column order. */
+export const HEADLINE_KEYS = [
+  'waitToSeeDoctor',
+  'admittedTotalTime',
+  'withinTarget',
+  'lwbs',
+  'admitted',
+  'dischargedWithin4h',
+  'admittedWithin8h',
+  'eip',
+] as const;
+
+export type HeadlineKey = (typeof HEADLINE_KEYS)[number];
+
+/** Minutes for the two times, a 0-1 share for the shares, a patient count for EIP. */
+export type HeadlineKind = 'minutes' | 'share' | 'count';
+
+export const HEADLINE_KINDS: Record<HeadlineKey, HeadlineKind> = {
+  waitToSeeDoctor: 'minutes',
+  admittedTotalTime: 'minutes',
+  withinTarget: 'share',
+  lwbs: 'share',
+  admitted: 'share',
+  dischargedWithin4h: 'share',
+  admittedWithin8h: 'share',
+  eip: 'count',
+};
+
+/** One published or reported year figure; `value` is in its measure's kind. */
+export interface YearFigure {
+  value: number;
+  /** EIP only: the year's highest count at once. */
+  max?: number;
+  /** What kind of figure it is ("median", "about"). */
+  stat: string;
+  /** Whose figure it is ("Calgary Zone", "Rockyview"). */
+  scope: string;
+  /** Short citation shown under the value. */
+  cite: string;
+  /** Full source, shown on hover. */
+  source: string;
+}
+
+/** The year row, read from yearReference.json; null where no year figure exists yet. */
+export const YEAR_REFERENCE: Record<HeadlineKey, YearFigure | null> = yearReferenceFile.measures;
+
+/** One headline measure in this run; `value` is comparable with the year figure's. */
+export interface HeadlineValue {
+  value?: number;
+  /** EIP only: the highest count at once. */
+  max?: number;
+  /** What the value is of. */
+  qualifier: string;
+  note?: string;
+}
+
+/** Mean and peak of the EIP series, and when the peak fell; empty for a replay without it. */
+export function eipSummary(metrics: ReplayMetrics): { mean?: number; max?: number; at?: string } {
+  const eip = metrics.series.eip;
+  if (!eip || !eip.length) return {};
+  let best = 0;
+  for (let i = 1; i < eip.length; i++) {
+    if (eip[i] > eip[best]) best = i;
+  }
+  return {
+    mean: eip.reduce((a, b) => a + b, 0) / eip.length,
+    max: eip[best],
+    at: elapsedLabel(best * metrics.axis.bucketMinutes),
+  };
+}
+
+/** Every headline measure for this run, keyed as the year reference is. */
+export function headlineValues(metrics: ReplayMetrics): Record<HeadlineKey, HeadlineValue> {
+  const { cohort, compliance, ahs: ahsBlock } = metrics;
+  const wait = ahsBlock?.waitToSeeDoctor ?? { n: 0 };
+  const admittedTime = ahsBlock?.admittedTotalTime ?? { n: 0 };
+  const target = withinTargetShare(metrics);
+  const departed = cohort.completed + cohort.lwbs;
+  const eip = eipSummary(metrics);
+  return {
+    waitToSeeDoctor: {
+      value: wait.n > 0 ? wait.median : undefined,
+      qualifier: 'median, AHS clock',
+      note: wait.n > 0 ? `90th percentile ${hoursText(wait.p90)} · ${wait.n} patients` : 'No patient reached a physician',
+    },
+    admittedTotalTime: {
+      value: admittedTime.n > 0 ? admittedTime.median : undefined,
+      qualifier: 'median, AHS clock',
+      note: admittedTime.n > 0 ? `90th percentile ${hoursText(admittedTime.p90)} · ${admittedTime.n} patients` : 'No admitted patient left during the day',
+    },
+    withinTarget: { value: target.share, qualifier: `of ${target.seen} who reached a physician`, note: 'CTAS 2 to 5' },
+    lwbs: { value: departed > 0 ? cohort.lwbs / departed : undefined, qualifier: `${cohort.lwbs} of ${departed} who departed` },
+    admitted: {
+      value: cohort.completed > 0 ? cohort.admitted / cohort.completed : undefined,
+      qualifier: `${cohort.admitted} of ${cohort.completed} completed visits`,
+    },
+    dischargedWithin4h: { value: compliance.dischargedWithin4h.share, qualifier: `of ${compliance.dischargedWithin4h.n} discharged` },
+    admittedWithin8h: { value: compliance.admittedWithin8h.share, qualifier: `of ${compliance.admittedWithin8h.n} admitted` },
+    eip: {
+      value: eip.mean,
+      max: eip.max,
+      qualifier: 'average in the ED at once',
+      note: eip.max !== undefined ? `max ${eip.max} at once, ${eip.at} after the start` : 'Not in this replay (built before the EIP series)',
+    },
+  };
+}
+
+function hoursText(minutes: number | undefined): string {
+  return minutes === undefined ? '--' : `${(minutes / 60).toFixed(1)} h`;
+}
+
+/** A headline value as the Overview prints it. */
+export function headlineLabel(kind: HeadlineKind, value: number | undefined): string {
+  if (value === undefined || Number.isNaN(value)) return '--';
+  if (kind === 'minutes') return hoursText(value);
+  if (kind === 'share') return percent(value);
+  return value.toFixed(1);
+}
+
+/** This run against the year, in the measure's own unit ("+0.4 h vs year", "-3 pts vs year"). */
+export function yearDeltaLabel(kind: HeadlineKind, run: number | undefined, year: YearFigure | null): string | undefined {
+  if (run === undefined || Number.isNaN(run) || !year) return undefined;
+  const delta = run - year.value;
+  const [size, unit] =
+    kind === 'minutes' ? [delta / 60, ' h'] : kind === 'share' ? [delta * 100, ' pts'] : [delta, ''];
+  const shown = Math.abs(size).toFixed(kind === 'share' ? 0 : 1);
+  if (Number(shown) === 0) return 'same as year';
+  return `${size > 0 ? '+' : '−'}${shown}${unit} vs year`;
 }
 
 /** Human names for the engine's care-space pools. */
@@ -468,6 +604,16 @@ export function edwinChart(metrics: ReplayMetrics): ChartSeries {
   return {
     labels: bucketLabels(metrics),
     datasets: [{ label: 'EDWIN', data: edwin, color: ahs.blue, emphasis: true }],
+  };
+}
+
+/** Emergency inpatients in the ED over the run as one line; empty for a replay without the series. */
+export function eipChart(metrics: ReplayMetrics): ChartSeries {
+  const eip = metrics.series.eip;
+  if (!eip) return { labels: bucketLabels(metrics), datasets: [] };
+  return {
+    labels: bucketLabels(metrics),
+    datasets: [{ label: 'Emergency inpatients', data: eip, color: ahs.blue, emphasis: true }],
   };
 }
 

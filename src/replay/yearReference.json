@@ -1,0 +1,31 @@
+{
+  "about": "Year figures for the first row of the Overview, one per column. value is minutes for the two times, a 0-1 share for the shares and a patient count for EIP (max is EIP's highest count at once). null leaves the column's year cell empty. Replace each figure with Rockyview's own when it arrives (EDSim-Dev issue #4, workstream E).",
+  "measures": {
+    "waitToSeeDoctor": {
+      "value": 156,
+      "stat": "median",
+      "scope": "Calgary Zone",
+      "cite": "AHS 2024-25",
+      "source": "AHS 2024-25 Annual Report: ED wait time to see a doctor, 50th percentile, Calgary Zone (provincial 150 min)"
+    },
+    "admittedTotalTime": {
+      "value": 750,
+      "stat": "median",
+      "scope": "Calgary Zone",
+      "cite": "AHS 2024-25",
+      "source": "AHS 2024-25 Annual Report: total time in ED for admitted patients, 50th percentile, Calgary Zone (provincial 804 min)"
+    },
+    "withinTarget": null,
+    "lwbs": {
+      "value": 0.04,
+      "stat": "estimate",
+      "scope": "Rockyview",
+      "cite": "ED physician, 2026",
+      "source": "Estimate from a Rockyview ED physician at the 2026 dashboard review; replace with the measured rate"
+    },
+    "admitted": null,
+    "dischargedWithin4h": null,
+    "admittedWithin8h": null,
+    "eip": null
+  }
+}

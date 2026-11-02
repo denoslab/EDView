@@ -9,6 +9,10 @@ import {
   componentRanking,
   componentRankingChart,
   edwinBand,
+  edwinBands,
+  edwinChart,
+  eipChart,
+  eipSummary,
   oldestWaitAverageChart,
   overTargetChart,
   queueAverages,
@@ -16,7 +20,7 @@ import {
   sampledTargetMedians,
   usableCapacityChart,
 } from '@/replay/metricsDerived';
-import { BarChart, Empty, Panel, Row, Tile, Tiles, hasAny, minutesLabel, shareLabel } from './primitives';
+import { BarChart, Empty, LineChart, Panel, Row, Tile, Tiles, hasAny, minutesLabel, shareLabel } from './primitives';
 
 export function BottlenecksTab({ metrics, currentSimTime }: { metrics: ReplayMetrics; currentSimTime?: string }) {
   const bucket = bucketIndexFor(metrics, currentSimTime);
@@ -31,6 +35,10 @@ export function BottlenecksTab({ metrics, currentSimTime }: { metrics: ReplayMet
   const over = useMemo(() => overTargetChart(metrics), [metrics]);
   const targets = useMemo(() => sampledTargetMedians(metrics), [metrics]);
   const capacity = useMemo(() => usableCapacityChart(metrics), [metrics]);
+  const eip = useMemo(() => eipChart(metrics), [metrics]);
+  const eipDay = useMemo(() => eipSummary(metrics), [metrics]);
+  const edwin = useMemo(() => edwinChart(metrics), [metrics]);
+  const bands = useMemo(() => edwinBands(metrics), [metrics]);
   const edwinNow = metrics.series.edwin?.[bucket];
   const band = edwinNow === undefined ? undefined : edwinBand(edwinNow);
   const top = ranking[0];
@@ -119,6 +127,23 @@ export function BottlenecksTab({ metrics, currentSimTime }: { metrics: ReplayMet
           note={capacity.varies ? 'Closed beds changed between snapshots; the bars show the last one.' : 'Closed beds did not change during the run.'}
         >
           {capacity.labels.length ? <BarChart series={capacity} yTitle="Spaces" stacked horizontal /> : <Empty>No bed-occupancy snapshots in this replay.</Empty>}
+        </Panel>
+      </Row>
+      <Row>
+        <Panel
+          title="Emergency inpatients (EIP) in the ED over the day"
+          method="eip"
+          reading="Admitted patients still in the ED at each moment, from the decision to admit until they leave. A line that climbs through the morning and does not come down is inpatient beds not freeing up: each EIP holds an ED space a new patient cannot use."
+          note={eipDay.max !== undefined ? `Average ${eipDay.mean?.toFixed(1)} at once, highest ${eipDay.max} at ${eipDay.at} after the start.` : undefined}
+        >
+          {eip.datasets.length ? <LineChart series={eip} yTitle="Emergency inpatients" /> : <Empty>Not in this replay (built before the EIP series).</Empty>}
+        </Panel>
+        <Panel
+          title="EDWIN over the day"
+          method="edwin"
+          reading="A published crowding score: patients weighted by acuity over physicians times usable spaces. Below the yellow band the department is not busy; inside it busy; in the red, overcrowded."
+        >
+          {edwin.datasets.length ? <LineChart series={edwin} yTitle="EDWIN" bands={bands} /> : <Empty>Needs bed occupancy and at least one physician.</Empty>}
         </Panel>
       </Row>
     </>

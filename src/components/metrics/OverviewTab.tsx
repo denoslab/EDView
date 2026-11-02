@@ -1,24 +1,17 @@
 /**
- * The landing tab: the headline tiles and the summary charts of the day. Each section tab
- * breaks these down further and draws nothing the Overview already shows.
+ * The landing tab: the headline measures as the year against this run, then the summary
+ * charts of the day. Each section tab breaks these down further and draws nothing the
+ * Overview already shows.
  */
 import { useMemo } from 'react';
 import type { ReplayMetrics } from '@/replay/types';
+import { arrivalsChart, censusChart, departuresByDispositionChart, outcomeTiles, peakCensus } from '@/replay/metricsSelectors';
 import {
-  arrivalsChart,
-  censusChart,
-  departuresByDispositionChart,
-  outcomeTiles,
-  peakCensus,
-  percent,
-  stageWaitChart,
-  stageWaitCounts,
-} from '@/replay/metricsSelectors';
-import {
-  ahsMeasures,
-  edwinBand,
-  edwinBands,
-  edwinChart,
+  HEADLINE_KEYS,
+  HEADLINE_KINDS,
+  YEAR_REFERENCE,
+  headlineLabel,
+  headlineValues,
   nurseLoadChart,
   nurseUtilization,
   physicianLoadChart,
@@ -26,83 +19,81 @@ import {
   starvationChart,
   starvationRows,
   throughputBalanceChart,
+  yearDeltaLabel,
 } from '@/replay/metricsDerived';
-import { BarChart, Empty, LineChart, Panel, Row, Tile, Tiles, hasAny, hoursLabel, shareLabel } from './primitives';
+import type { HeadlineKey } from '@/replay/metricsDerived';
+import { BarChart, Caption, CompareGrid, Empty, LineChart, Panel, Row, Tile, Tiles, hasAny, shareLabel } from './primitives';
+import type { CompareColumn } from './primitives';
+
+/** Each headline column's title and the entry its info control opens. */
+const HEADLINE_COLUMNS: Record<HeadlineKey, { title: string; method: string }> = {
+  waitToSeeDoctor: { title: 'Wait to see a doctor', method: 'ahsWait' },
+  admittedTotalTime: { title: 'Time in ED, admitted', method: 'ahsAdmitted' },
+  withinTarget: { title: 'Seen within CTAS target', method: 'withinTarget' },
+  lwbs: { title: 'Left without being seen', method: 'lwbs' },
+  admitted: { title: 'Admitted', method: 'disposition' },
+  dischargedWithin4h: { title: 'Discharged within 4 h', method: 'lengthOfStayBenchmarks' },
+  admittedWithin8h: { title: 'Admitted within 8 h', method: 'lengthOfStayBenchmarks' },
+  eip: { title: 'Emergency inpatients (EIP)', method: 'eip' },
+};
+
+/** Row 1 is the year figure, row 2 this run with its distance from the year. */
+function headlineColumns(metrics: ReplayMetrics): CompareColumn[] {
+  const run = headlineValues(metrics);
+  return HEADLINE_KEYS.map((key) => {
+    const kind = HEADLINE_KINDS[key];
+    const year = YEAR_REFERENCE[key];
+    const value = run[key];
+    const delta = yearDeltaLabel(kind, value.value, year);
+    return {
+      key,
+      ...HEADLINE_COLUMNS[key],
+      cells: [
+        year
+          ? {
+              value: headlineLabel(kind, year.value),
+              qualifier: `${year.stat}, ${year.scope}`,
+              note: year.max !== undefined ? `max ${year.max} · ${year.cite}` : year.cite,
+              hint: year.source,
+            }
+          : { value: '--', qualifier: 'no year figure yet' },
+        {
+          value: headlineLabel(kind, value.value),
+          qualifier: value.qualifier,
+          note: [delta, value.note].filter(Boolean).join(' · ') || undefined,
+        },
+      ],
+    };
+  });
+}
 
 export function OverviewTab({ metrics }: { metrics: ReplayMetrics }) {
-  const [wait, admittedTime] = useMemo(() => ahsMeasures(metrics), [metrics]);
+  const headline = useMemo(() => headlineColumns(metrics), [metrics]);
   const tiles = useMemo(() => Object.fromEntries(outcomeTiles(metrics).map((t) => [t.key, t])), [metrics]);
   const peak = useMemo(() => peakCensus(metrics), [metrics]);
   const census = useMemo(() => censusChart(metrics), [metrics]);
   const arrivals = useMemo(() => arrivalsChart(metrics, { withDepartures: false }), [metrics]);
   const departures = useMemo(() => departuresByDispositionChart(metrics), [metrics]);
-  const stay = useMemo(() => stageWaitChart(metrics, 'lengthOfStay'), [metrics]);
-  const stayCounts = useMemo(() => stageWaitCounts(metrics, 'lengthOfStay'), [metrics]);
   const balance = useMemo(() => throughputBalanceChart(metrics), [metrics]);
-  const edwin = useMemo(() => edwinChart(metrics), [metrics]);
-  const bands = useMemo(() => edwinBands(metrics), [metrics]);
   const pressureRows = useMemo(() => starvationRows(metrics), [metrics]);
   const pressure = useMemo(() => starvationChart(metrics), [metrics]);
   const nurseLoad = useMemo(() => nurseLoadChart(metrics), [metrics]);
   const physicianLoad = useMemo(() => physicianLoadChart(metrics), [metrics]);
   const nurses = useMemo(() => nurseUtilization(metrics), [metrics]);
-  const { cohort, compliance } = metrics;
-  const edwinSeries = metrics.series.edwin;
-  const edwinMean = edwinSeries && edwinSeries.length ? edwinSeries.reduce((a, b) => a + b, 0) / edwinSeries.length : undefined;
-  const edwinPeak = edwinSeries && edwinSeries.length ? Math.max(...edwinSeries) : undefined;
+  const { cohort } = metrics;
   const top = pressureRows[0];
 
   return (
     <>
-      <Tiles>
-        <Tile
-          title="Wait to see a doctor"
-          value={hoursLabel(wait.cell.median)}
-          qualifier="median, AHS clock"
-          method="ahsWait"
-          note={
-            wait.cell.n > 0
-              ? `90th percentile ${hoursLabel(wait.cell.p90)} · ${wait.cell.n} patients · AHS 2024-25: ${hoursLabel(wait.reference.provincialMedian)}`
-              : 'No patient reached a physician'
-          }
-        />
-        <Tile
-          title="Time in ED, admitted"
-          value={hoursLabel(admittedTime.cell.median)}
-          qualifier="median, AHS clock"
-          method="ahsAdmitted"
-          note={
-            admittedTime.cell.n > 0
-              ? `90th percentile ${hoursLabel(admittedTime.cell.p90)} · ${admittedTime.cell.n} patients · AHS 2024-25: ${hoursLabel(admittedTime.reference.provincialMedian)}`
-              : 'No admitted patient left during the day'
-          }
-        />
-        <Tile title={tiles.withinTarget.title} value={tiles.withinTarget.value} qualifier={tiles.withinTarget.qualifier} note={tiles.withinTarget.note} method="withinTarget" />
-        <Tile title={tiles.lwbs.title} value={tiles.lwbs.value} qualifier={tiles.lwbs.qualifier} method="lwbs" />
-        <Tile
-          title="Admitted"
-          value={cohort.completed > 0 ? percent(cohort.admitted / cohort.completed) : '--'}
-          qualifier={`${cohort.admitted} of ${cohort.completed} completed visits`}
-          method="disposition"
-        />
-        <Tile title={tiles.dischargedWithin4h.title} value={tiles.dischargedWithin4h.value} qualifier={tiles.dischargedWithin4h.qualifier} method="lengthOfStayBenchmarks" />
-        <Tile
-          title="Admitted within 8 h"
-          value={percent(compliance.admittedWithin8h.share)}
-          qualifier={`of ${compliance.admittedWithin8h.n} admitted`}
-          method="lengthOfStayBenchmarks"
-        />
-      </Tiles>
+      <CompareGrid rows={['Year', 'This run']} columns={headline} />
+      <Caption>
+        The year row is the published or reported figure closest to Rockyview for each measure, named under its value
+        (hover for the full source); a dash means no year figure yet. Rockyview&apos;s own year numbers replace these as
+        they arrive. The run row says how far this day sits from the year.
+      </Caption>
       <Tiles>
         <Tile title={tiles.enrolled.title} value={tiles.enrolled.value} qualifier={tiles.enrolled.qualifier} note={`${cohort.completed} completed · ${cohort.censored} still in the ED at the end`} method="cohort" />
         <Tile title="Peak census" value={`${peak.value}`} qualifier="patients present at once" note={`at ${peak.at} after the start`} method="census" />
-        <Tile
-          title="EDWIN"
-          value={edwinMean === undefined ? '--' : edwinMean.toFixed(2)}
-          qualifier="mean over the day"
-          note={edwinPeak === undefined ? 'Needs bed occupancy and physicians' : `peak ${edwinPeak.toFixed(2)}, ${edwinBand(edwinPeak).label.toLowerCase()}`}
-          method="edwin"
-        />
       </Tiles>
       <Row>
         <Panel
@@ -129,28 +120,11 @@ export function OverviewTab({ metrics }: { metrics: ReplayMetrics }) {
           {departures.datasets.length ? <BarChart series={departures} yTitle="Patients" stacked /> : <Empty>This replay was built without the disposition split.</Empty>}
         </Panel>
         <Panel
-          title="Total time in ED by CTAS (completed visits)"
-          method="stageWaits"
-          reading="Median and 90th percentile of arrival to departure per level, admitted and discharged pooled. The 1.2 tab splits the stay into its stages; the 1.3 tab has the benchmarks."
-          note={stayCounts.length ? `Patients per level: ${stayCounts.join(', ')}.` : 'No completed visit.'}
-        >
-          {stay.labels.length ? <BarChart series={stay} yTitle="Minutes" /> : <Empty>No completed visit in the run.</Empty>}
-        </Panel>
-      </Row>
-      <Row>
-        <Panel
           title="Throughput balance (departures ÷ arrivals per hour)"
           method="throughputBalance"
           reading="Below the dashed line for a sustained period means the department is falling behind; above it, the backlog is clearing."
         >
           <LineChart series={balance} yTitle="Ratio" xTitle="Simulated hour" />
-        </Panel>
-        <Panel
-          title="EDWIN over the day"
-          method="edwin"
-          reading="Below the yellow band the department is not busy; inside it busy; in the red, overcrowded. The 1.4 tab names the queue behind the score at any moment."
-        >
-          {edwin.datasets.length ? <LineChart series={edwin} yTitle="EDWIN" bands={bands} /> : <Empty>Needs bed occupancy and at least one physician.</Empty>}
         </Panel>
       </Row>
       <Row>
